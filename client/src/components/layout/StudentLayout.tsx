@@ -25,7 +25,7 @@ export function StudentLayout({ children }: StudentLayoutProps) {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r hidden md:flex flex-col fixed inset-y-0 z-50">
         <div className="h-16 flex items-center gap-3 px-6 border-b">
-          <img src="/assets/images/college-logo.png" alt="Logo" className="h-8 w-8" />
+          <img src="/assets/images/school-logo.jpg" alt="Logo" className="h-8 w-8" />
           <span className="font-serif font-bold text-primary">Student Portal</span>
         </div>
 

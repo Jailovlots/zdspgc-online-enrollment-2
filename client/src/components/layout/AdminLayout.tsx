@@ -22,7 +22,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     <div className="min-h-screen flex bg-slate-50">
       <aside className="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col fixed inset-y-0 z-50">
         <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950">
-          <img src="/assets/images/college-logo.png" alt="Logo" className="h-8 w-8" />
+          <img src="/assets/images/shool-logo.jpg" alt="Logo" className="h-8 w-8" />
           <span className="font-serif font-bold text-white">Admin Portal</span>
         </div>
 

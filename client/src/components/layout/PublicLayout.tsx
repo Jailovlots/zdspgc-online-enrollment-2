@@ -13,7 +13,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
           <Link href="/">
             <a className="flex items-center gap-3 hover:opacity-90 transition-opacity">
               <img 
-                src="/assets/images/college-logo.png" 
+                src="/assets/images/school-logo.jpg" 
                 alt="ZDSPGC Logo" 
                 className="h-12 w-12 object-contain"
               />
@@ -50,7 +50,7 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="container mx-auto px-4 grid md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <img src="/assets/images/college-logo.png" alt="Logo" className="h-10 w-10 brightness-0 invert opacity-80" />
+              <img src="/assets/images/school-logo.jpg" alt="Logo" className="h-10 w-10 brightness-0 invert opacity-80" />
               <span className="font-serif font-bold text-lg">ZDSPGC</span>
             </div>
             <p className="text-sm text-slate-400">

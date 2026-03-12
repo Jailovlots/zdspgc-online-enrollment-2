@@ -13,7 +13,7 @@ export default function Home() {
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
           <img 
-            src="/assets/images/college-hero.png" 
+            src="/assets/images/school-logo.jpg" 
             alt="Campus" 
             className="w-full h-full object-cover"
           />
@@ -134,7 +134,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="group cursor-pointer">
               <div className="aspect-video bg-slate-200 rounded-lg mb-4 overflow-hidden relative">
-                <img src="/assets/images/college-hero.png" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" alt="News" />
+                <img src="/assets/images/school-logo.jpg" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" alt="News" />
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-800">
                   OCT 15, 2025
                 </div>
