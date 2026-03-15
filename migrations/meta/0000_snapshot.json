@@ -1,0 +1,571 @@
+{
+  "id": "80547a22-60a0-4885-9cb0-4f6bd12064bd",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.courses": {
+      "name": "courses",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "courses_code_unique": {
+          "name": "courses_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.enrollment_subjects": {
+      "name": "enrollment_subjects",
+      "schema": "",
+      "columns": {
+        "enrollment_id": {
+          "name": "enrollment_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "subject_id": {
+          "name": "subject_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "enrollment_subjects_enrollment_id_enrollments_id_fk": {
+          "name": "enrollment_subjects_enrollment_id_enrollments_id_fk",
+          "tableFrom": "enrollment_subjects",
+          "tableTo": "enrollments",
+          "columnsFrom": [
+            "enrollment_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "enrollment_subjects_subject_id_subjects_id_fk": {
+          "name": "enrollment_subjects_subject_id_subjects_id_fk",
+          "tableFrom": "enrollment_subjects",
+          "tableTo": "subjects",
+          "columnsFrom": [
+            "subject_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "enrollment_subjects_enrollment_id_subject_id_pk": {
+          "name": "enrollment_subjects_enrollment_id_subject_id_pk",
+          "columns": [
+            "enrollment_id",
+            "subject_id"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.enrollments": {
+      "name": "enrollments",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "academic_year": {
+          "name": "academic_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "semester": {
+          "name": "semester",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "registration_date": {
+          "name": "registration_date",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "now()"
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "enrollments_student_id_students_id_fk": {
+          "name": "enrollments_student_id_students_id_fk",
+          "tableFrom": "enrollments",
+          "tableTo": "students",
+          "columnsFrom": [
+            "student_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.students": {
+      "name": "students",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "middle_name": {
+          "name": "middle_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extra_name": {
+          "name": "extra_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "date_of_birth": {
+          "name": "date_of_birth",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "place_of_birth": {
+          "name": "place_of_birth",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gender": {
+          "name": "gender",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "religion": {
+          "name": "religion",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nationality": {
+          "name": "nationality",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "civil_status": {
+          "name": "civil_status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mobile_number": {
+          "name": "mobile_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "father_name": {
+          "name": "father_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "father_occupation": {
+          "name": "father_occupation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "father_contact": {
+          "name": "father_contact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mother_name": {
+          "name": "mother_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mother_occupation": {
+          "name": "mother_occupation",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "mother_contact": {
+          "name": "mother_contact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_name": {
+          "name": "guardian_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_relationship": {
+          "name": "guardian_relationship",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guardian_contact": {
+          "name": "guardian_contact",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "elementary_school": {
+          "name": "elementary_school",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "elementary_year": {
+          "name": "elementary_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "high_school": {
+          "name": "high_school",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "high_school_year": {
+          "name": "high_school_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "senior_high_school": {
+          "name": "senior_high_school",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "senior_high_school_year": {
+          "name": "senior_high_school_year",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "photo_url": {
+          "name": "photo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "student_id": {
+          "name": "student_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "year_level": {
+          "name": "year_level",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "default": 1
+        },
+        "status": {
+          "name": "status",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'not-enrolled'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "students_id_users_id_fk": {
+          "name": "students_id_users_id_fk",
+          "tableFrom": "students",
+          "tableTo": "users",
+          "columnsFrom": [
+            "id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "students_course_id_courses_id_fk": {
+          "name": "students_course_id_courses_id_fk",
+          "tableFrom": "students",
+          "tableTo": "courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "students_student_id_unique": {
+          "name": "students_student_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "student_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.subjects": {
+      "name": "subjects",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "code": {
+          "name": "code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "units": {
+          "name": "units",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 3
+        },
+        "schedule": {
+          "name": "schedule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "instructor": {
+          "name": "instructor",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "course_id": {
+          "name": "course_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "subjects_course_id_courses_id_fk": {
+          "name": "subjects_course_id_courses_id_fk",
+          "tableFrom": "subjects",
+          "tableTo": "courses",
+          "columnsFrom": [
+            "course_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "subjects_code_unique": {
+          "name": "subjects_code_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "code"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "varchar",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "username": {
+          "name": "username",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password": {
+          "name": "password",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role": {
+          "name": "role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'student'"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_username_unique": {
+          "name": "users_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {},
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

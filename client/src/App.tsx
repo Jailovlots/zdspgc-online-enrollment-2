@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider } from "@/hooks/use-auth";
 
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -15,6 +16,10 @@ import StudentRegistration from "@/pages/student/Registration";
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
 import StudentList from "@/pages/admin/StudentList";
+import AdminEnrollments from "./pages/admin/Enrollments";
+import AdminCourses from "./pages/admin/Courses";
+
+import { ProtectedRoute } from "./lib/protected-route";
 
 function Router() {
   return (
@@ -25,17 +30,17 @@ function Router() {
       <Route path="/about" component={Home} /> {/* Placeholder */}
 
       {/* Student Routes */}
-      <Route path="/student/dashboard" component={StudentDashboard} />
-      <Route path="/student/registration" component={StudentRegistration} />
-      <Route path="/student/schedule" component={StudentDashboard} /> {/* Placeholder */}
-      <Route path="/student/grades" component={StudentDashboard} /> {/* Placeholder */}
-      <Route path="/student/profile" component={StudentDashboard} /> {/* Placeholder */}
+      <ProtectedRoute path="/student/dashboard" component={StudentDashboard} role="student" />
+      <ProtectedRoute path="/student/registration" component={StudentRegistration} role="student" />
+      <ProtectedRoute path="/student/schedule" component={StudentDashboard} role="student" />
+      <ProtectedRoute path="/student/grades" component={StudentDashboard} role="student" />
+      <ProtectedRoute path="/student/profile" component={StudentDashboard} role="student" />
 
       {/* Admin Routes */}
-      <Route path="/admin/dashboard" component={AdminDashboard} />
-      <Route path="/admin/students" component={StudentList} />
-      <Route path="/admin/enrollments" component={StudentList} /> {/* Placeholder */}
-      <Route path="/admin/courses" component={AdminDashboard} /> {/* Placeholder */}
+      <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} role="admin" />
+      <ProtectedRoute path="/admin/students" component={StudentList} role="admin" />
+      <ProtectedRoute path="/admin/enrollments" component={AdminEnrollments} role="admin" />
+      <ProtectedRoute path="/admin/courses" component={AdminCourses} role="admin" />
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />
@@ -46,12 +51,15 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
 
 export default App;
+

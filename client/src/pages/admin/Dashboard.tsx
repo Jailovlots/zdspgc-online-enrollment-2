@@ -3,18 +3,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, FileCheck, BookOpen, AlertCircle } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
 
 // Recharts
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
-const data = [
-  { name: "BSIT", total: 450 },
-  { name: "BSEd", total: 320 },
-  { name: "BSBa", total: 280 },
-  { name: "BSCrim", total: 390 },
-];
-
 export default function AdminDashboard() {
+  const { data: stats } = useQuery<any>({
+    queryKey: ["/api/admin/stats"],
+  });
+
+  const { data: pendingApplications } = useQuery<any[]>({
+    queryKey: ["/api/admin/enrollments/pending"],
+  });
+
+  const chartData = [
+    { name: "BSIT", total: stats?.totalStudents || 0 }, // Simplified for real data
+    { name: "Others", total: 0 },
+  ];
+
   return (
     <AdminLayout>
       <div className="space-y-8">
@@ -31,8 +38,8 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">1,450</div>
-              <p className="text-xs text-muted-foreground">+180 from last semester</p>
+              <div className="text-2xl font-bold">{stats?.totalStudents || 0}</div>
+              <p className="text-xs text-muted-foreground">Registered in the system</p>
             </CardContent>
           </Card>
           <Card>
@@ -41,7 +48,7 @@ export default function AdminDashboard() {
               <FileCheck className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">24</div>
+              <div className="text-2xl font-bold text-yellow-600">{stats?.pendingEnrollments || 0}</div>
               <p className="text-xs text-muted-foreground">Requires immediate action</p>
             </CardContent>
           </Card>
@@ -51,7 +58,7 @@ export default function AdminDashboard() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">4</div>
+              <div className="text-2xl font-bold">{stats?.activeCourses || 0}</div>
               <p className="text-xs text-muted-foreground">Across all year levels</p>
             </CardContent>
           </Card>
@@ -61,7 +68,7 @@ export default function AdminDashboard() {
               <AlertCircle className="h-4 w-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-destructive">5</div>
+              <div className="text-2xl font-bold text-destructive">{stats?.rejections || 0}</div>
               <p className="text-xs text-muted-foreground">Due to missing documents</p>
             </CardContent>
           </Card>
@@ -75,7 +82,7 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent className="pl-2">
               <ResponsiveContainer width="100%" height={350}>
-                <BarChart data={data}>
+                <BarChart data={chartData}>
                   <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                   <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `${value}`} />
                   <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ background: '#fff', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.1)', border: 'none' }} />
@@ -92,22 +99,22 @@ export default function AdminDashboard() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {[
-                  { name: "Maria Clara", course: "BSEd", status: "Pending", time: "2 hours ago" },
-                  { name: "Andres Bonifacio", course: "BSCrim", status: "Pending", time: "5 hours ago" },
-                  { name: "Emilio Aguinaldo", course: "BSBa", status: "Pending", time: "1 day ago" },
-                  { name: "Apolinario Mabini", course: "BSIT", status: "Pending", time: "1 day ago" },
-                ].map((item, i) => (
+                {pendingApplications?.map((item, i) => (
                   <div key={i} className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0">
                     <div className="space-y-1">
-                      <p className="text-sm font-medium leading-none">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.course} • {item.time}</p>
+                      <p className="text-sm font-medium leading-none">{item.student.firstName} {item.student.lastName}</p>
+                      <p className="text-xs text-muted-foreground">{item.course} • {new Date(item.enrollment.registrationDate).toLocaleDateString()}</p>
                     </div>
                     <Link href="/admin/students">
                       <Button size="sm" variant="outline" className="h-8">Review</Button>
                     </Link>
                   </div>
                 ))}
+                {!pendingApplications?.length && (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No pending applications.
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -116,3 +123,4 @@ export default function AdminDashboard() {
     </AdminLayout>
   );
 }
+

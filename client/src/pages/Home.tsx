@@ -9,12 +9,12 @@ export default function Home() {
   return (
     <PublicLayout>
       {/* Hero Section */}
-      <section className="relative h-[600px] flex items-center justify-center overflow-hidden">
+      <section className="relative h-[700px] flex items-center justify-center overflow-hidden">
         {/* Background Image with Overlay */}
         <div className="absolute inset-0 z-0">
-          <img 
-            src="/assets/images/school-logo.jpg" 
-            alt="Campus" 
+          <img
+            src="/assets/images/school-prof.jpg"
+            alt="Campus"
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-r from-slate-900/90 to-slate-900/50" />
@@ -23,10 +23,10 @@ export default function Home() {
         <div className="container relative z-10 px-4 text-center md:text-left">
           <div className="max-w-3xl">
             <Badge className="mb-4 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-1 text-sm rounded-full">
-              Admissions Open for A.Y. 2025-2026
+              Admissions Open for A.Y. 2026-2027
             </Badge>
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-sm font-serif">
-              Excellence in Education, <br/>
+              Excellence in Education, <br />
               <span className="text-secondary">Service to the Community</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-200 mb-8 leading-relaxed max-w-2xl">
@@ -102,19 +102,19 @@ export default function Home() {
         <div className="container mx-auto px-4">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <div>
-              <div className="text-4xl font-bold mb-2 font-serif">2,500+</div>
+              <div className="text-4xl font-bold mb-2 font-serif">1000+</div>
               <div className="text-primary-foreground/80 text-sm uppercase tracking-wider">Students Enrolled</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2 font-serif">12</div>
+              <div className="text-4xl font-bold mb-2 font-serif">3</div>
               <div className="text-primary-foreground/80 text-sm uppercase tracking-wider">Degree Programs</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2 font-serif">85</div>
+              <div className="text-4xl font-bold mb-2 font-serif">35</div>
               <div className="text-primary-foreground/80 text-sm uppercase tracking-wider">Faculty Members</div>
             </div>
             <div>
-              <div className="text-4xl font-bold mb-2 font-serif">30+</div>
+              <div className="text-4xl font-bold mb-2 font-serif">3+</div>
               <div className="text-primary-foreground/80 text-sm uppercase tracking-wider">Years of Service</div>
             </div>
           </div>
@@ -134,7 +134,7 @@ export default function Home() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <div className="group cursor-pointer">
               <div className="aspect-video bg-slate-200 rounded-lg mb-4 overflow-hidden relative">
-                <img src="/assets/images/school-logo.jpg" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" alt="News" />
+                <img src="/assets/images/school-prof.jpg" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" alt="News" />
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-800">
                   OCT 15, 2025
                 </div>
@@ -142,27 +142,28 @@ export default function Home() {
               <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Enrollment Schedule for 2nd Semester</h3>
               <p className="text-muted-foreground line-clamp-2">The Office of the Registrar announces the enrollment dates for the upcoming Second Semester, Academic Year 2025-2026.</p>
             </div>
-            
+
             <div className="group cursor-pointer">
               <div className="aspect-video bg-slate-200 rounded-lg mb-4 overflow-hidden relative">
+                <img src="/assets/images/image.png" className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-500" alt="News" />
                 <div className="w-full h-full bg-primary/5 flex items-center justify-center">
                   <CalendarCheck className="h-12 w-12 text-primary/40" />
                 </div>
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-800">
-                  SEP 28, 2025
+                  SEP 28, 2026
                 </div>
               </div>
               <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Foundation Day Celebration</h3>
-              <p className="text-muted-foreground line-clamp-2">Join us as we celebrate 30 years of excellence! A week-long celebration featuring sports, cultural shows, and academic contests.</p>
+              <p className="text-muted-foreground line-clamp-2">Join us as we celebrate 3 years of excellence! A week-long celebration featuring sports, cultural shows, and academic contests.</p>
             </div>
 
             <div className="group cursor-pointer">
-               <div className="aspect-video bg-slate-200 rounded-lg mb-4 overflow-hidden relative">
+              <div className="aspect-video bg-slate-200 rounded-lg mb-4 overflow-hidden relative">
                 <div className="w-full h-full bg-secondary/5 flex items-center justify-center">
                   <GraduationCap className="h-12 w-12 text-secondary-foreground/40" />
                 </div>
                 <div className="absolute top-4 left-4 bg-white/90 backdrop-blur px-3 py-1 rounded text-xs font-bold text-slate-800">
-                  SEP 10, 2025
+                  SEP 10, 2026
                 </div>
               </div>
               <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">Scholarship Application Now Open</h3>

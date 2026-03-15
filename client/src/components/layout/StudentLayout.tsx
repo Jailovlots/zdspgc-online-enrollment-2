@@ -1,15 +1,16 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  LayoutDashboard, 
-  BookOpen, 
-  Calendar, 
-  FileText, 
-  LogOut, 
+import {
+  LayoutDashboard,
+  BookOpen,
+  Calendar,
+  FileText,
+  LogOut,
   Settings,
   User
 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -17,6 +18,7 @@ interface StudentLayoutProps {
 
 export function StudentLayout({ children }: StudentLayoutProps) {
   const [location] = useLocation();
+  const { user, logoutMutation } = useAuth();
 
   const isActive = (path: string) => location === path;
 
@@ -31,14 +33,14 @@ export function StudentLayout({ children }: StudentLayoutProps) {
 
         <div className="p-4 flex flex-col gap-1 flex-1">
           <div className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Menu</div>
-          
+
           <Link href="/student/dashboard">
             <Button variant={isActive("/student/dashboard") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
               <LayoutDashboard className="h-4 w-4" />
               Dashboard
             </Button>
           </Link>
-          
+
           <Link href="/student/registration">
             <Button variant={isActive("/student/registration") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
               <FileText className="h-4 w-4" />
@@ -61,14 +63,14 @@ export function StudentLayout({ children }: StudentLayoutProps) {
           </Link>
 
           <div className="text-xs font-semibold text-muted-foreground mt-6 mb-2 px-2 uppercase tracking-wider">Account</div>
-          
+
           <Link href="/student/profile">
             <Button variant={isActive("/student/profile") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
               <User className="h-4 w-4" />
               My Profile
             </Button>
           </Link>
-          
+
           <Link href="/student/settings">
             <Button variant={isActive("/student/settings") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
               <Settings className="h-4 w-4" />
@@ -78,12 +80,15 @@ export function StudentLayout({ children }: StudentLayoutProps) {
         </div>
 
         <div className="p-4 border-t">
-          <Link href="/login">
-            <Button variant="outline" className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10">
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          </Link>
+          <Button 
+            variant="outline" 
+            className="w-full gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </Button>
         </div>
       </aside>
 
@@ -95,14 +100,16 @@ export function StudentLayout({ children }: StudentLayoutProps) {
             <span className="font-bold text-primary">ZDSPGC</span>
           </div>
           <div className="ml-auto flex items-center gap-4">
-            <span className="text-sm font-medium text-slate-600 hidden md:inline-block">Welcome, Juan Dela Cruz</span>
+            <span className="text-sm font-medium text-slate-600 hidden md:inline-block">
+              Welcome, {user?.username || "Student"}
+            </span>
             <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-primary/20">
-              <AvatarImage src="https://api.dicebear.com/7.x/avataaars/svg?seed=Juan" />
-              <AvatarFallback>JD</AvatarFallback>
+              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "Juan"}`} />
+              <AvatarFallback>{user?.username?.substring(0, 2).toUpperCase() || "JD"}</AvatarFallback>
             </Avatar>
           </div>
         </header>
-        
+
         <div className="p-6 md:p-8 max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-4 duration-500">
           {children}
         </div>

@@ -12,9 +12,9 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="container flex h-20 items-center justify-between mx-auto px-4">
           <Link href="/">
             <a className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-              <img 
-                src="/assets/images/school-logo.jpg" 
-                alt="ZDSPGC Logo" 
+              <img
+                src="/assets/images/school-logo.jpg"
+                alt="ZDSPGC Logo"
                 className="h-12 w-12 object-contain"
               />
               <div className="hidden md:flex flex-col">
@@ -50,14 +50,14 @@ export function PublicLayout({ children }: PublicLayoutProps) {
         <div className="container mx-auto px-4 grid md:grid-cols-4 gap-8">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <img src="/assets/images/school-logo.jpg" alt="Logo" className="h-10 w-10 brightness-0 invert opacity-80" />
+              <img src="/assets/images/school-logo.jpg" alt="Logo" className="h-10 w-10 " />
               <span className="font-serif font-bold text-lg">ZDSPGC</span>
             </div>
             <p className="text-sm text-slate-400">
               Providing quality education for the youth of Zamboanga Del Sur since 1995.
             </p>
           </div>
-          
+
           <div>
             <h4 className="font-bold mb-4 text-white">Quick Links</h4>
             <ul className="space-y-2 text-sm">

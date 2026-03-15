@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { StudentLayout } from "@/components/layout/StudentLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,62 +6,268 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { COURSES, SUBJECTS } from "@/lib/mock-data";
-import { Loader2, Upload, FileText, Check, ChevronRight, ChevronLeft } from "lucide-react";
+import { Loader2, Upload, FileText, Check, ChevronRight, ChevronLeft, User, Phone, MapPin, School } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Course, Subject } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 
 export default function StudentRegistration() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState("");
-  const [enrolledSubjects, setEnrolledSubjects] = useState<string[]>([]);
+  const [selectedCourseId, setSelectedCourseId] = useState("");
+  const [enrolledSubjectIds, setEnrolledSubjectIds] = useState<string[]>([]);
+  
+  const [formData, setFormData] = useState({
+    firstName: user?.username || "",
+    lastName: "Student",
+    middleName: "",
+    extraName: "",
+    address: "",
+    dateOfBirth: "",
+    placeOfBirth: "",
+    gender: "",
+    religion: "",
+    nationality: "Filipino",
+    civilStatus: "",
+    mobileNumber: "",
+    email: "",
+    
+    fatherName: "",
+    fatherOccupation: "",
+    fatherContact: "",
+    motherName: "",
+    motherOccupation: "",
+    motherContact: "",
+    
+    guardianName: "",
+    guardianRelationship: "",
+    guardianContact: "",
+    
+    elementarySchool: "",
+    elementaryYear: "",
+    highSchool: "",
+    highSchoolYear: "",
+    seniorHighSchool: "",
+    seniorHighSchoolYear: "",
+    
+    photoUrl: "",
+    diplomaUrl: "",
+    form138Url: "",
+    goodMoralUrl: "",
+    psaUrl: "",
+    yearLevel: "1",
+    semester: "1st Semester",
+    academicYear: "2026-2027",
+  });
 
-  const handleNext = () => setStep(step + 1);
-  const handleBack = () => setStep(step - 1);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
 
-  const handleSubmit = () => {
-    setIsSubmitting(true);
-    // Simulate API Call
-    setTimeout(() => {
-      setIsSubmitting(false);
+  const { data: courses } = useQuery<Course[]>({
+    queryKey: ["/api/courses"],
+  });
+
+  const { data: subjects } = useQuery<Subject[]>({
+    queryKey: ["/api/courses", selectedCourseId, "subjects"],
+    enabled: !!selectedCourseId,
+  });
+
+  const enrollmentMutation = useMutation({
+    mutationFn: async (data: any) => {
+      // 1. Update Profile First
+      await apiRequest("POST", "/api/student/profile", {
+        ...formData,
+        courseId: selectedCourseId,
+        yearLevel: parseInt(formData.yearLevel),
+      });
+      
+      // 2. Submit Enrollment
+      const res = await apiRequest("POST", "/api/student/enroll", {
+        academicYear: formData.academicYear,
+        semester: formData.semester,
+        subjectIds: enrolledSubjectIds,
+        yearLevel: parseInt(formData.yearLevel),
+      });
+      return res.json();
+    },
+    onSuccess: () => {
       toast({
         title: "Registration Submitted!",
         description: "Your enrollment application has been sent to the registrar for approval.",
       });
-      // Reset or redirect logic here
-    }, 2000);
+      queryClient.invalidateQueries({ queryKey: ["/api/student/enrollment"] });
+      setLocation("/student/dashboard");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Submission failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleInputChange = (field: string, value: string) => {
+    // Automatically capitalize all text inputs as requested
+    const capitalizedValue = value.toUpperCase();
+    setFormData(prev => ({ ...prev, [field]: capitalizedValue }));
+  };
+
+  const handleFileUpload = async (field: string, file: File) => {
+    setUploadingField(field);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", file);
+
+      const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      if (!res.ok) throw new Error("Upload failed");
+
+      const data = await res.json();
+      handleInputChange(field, data.url);
+      toast({
+        title: "Upload successful",
+        description: `${field.replace(/Url$/, "")} has been uploaded.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Upload failed",
+        description: "There was an error uploading your file.",
+        variant: "destructive",
+      });
+    } finally {
+      setUploadingField(null);
+    }
+  };
+
+  const validateStep = (currentStep: number) => {
+    if (currentStep === 1) {
+      const requiredFields = [
+        "firstName", "lastName", "dateOfBirth", "placeOfBirth", "gender", 
+        "religion", "nationality", "civilStatus", "mobileNumber", "email", "address",
+        "elementarySchool", "elementaryYear", "highSchool", "highSchoolYear"
+      ];
+      
+      for (const field of requiredFields) {
+        if (!formData[field as keyof typeof formData]) {
+          const fieldName = field.replace(/([A-Z])/g, ' $1').toLowerCase();
+          toast({ 
+            title: "Required field", 
+            description: `Please fill out your ${fieldName}. Use "N/A" if not applicable.`, 
+            variant: "destructive" 
+          });
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    if (currentStep === 2) {
+      if (!selectedCourseId) {
+        toast({ title: "Course required", description: "Please select an academic program.", variant: "destructive" });
+        return false;
+      }
+      if (enrolledSubjectIds.length === 0) {
+        toast({ title: "Subjects required", description: "Please select at least one subject.", variant: "destructive" });
+        return false;
+      }
+      return true;
+    }
+    
+    if (currentStep === 3) {
+      const requiredDocs = ["diplomaUrl", "form138Url", "goodMoralUrl", "psaUrl"];
+      for (const doc of requiredDocs) {
+        if (!formData[doc as keyof typeof formData]) {
+          toast({ 
+            title: "Document required", 
+            description: `Please upload your ${doc.replace("Url", "").replace(/([A-Z])/g, ' $1')}.`, 
+            variant: "destructive" 
+          });
+          return false;
+        }
+      }
+      return true;
+    }
+    
+    return true;
+  };
+
+  const handleNext = () => {
+    if (validateStep(step)) {
+      setStep(step + 1);
+      window.scrollTo(0, 0);
+    }
+  };
+  const handleBack = () => {
+    setStep(step - 1);
+    window.scrollTo(0, 0);
+  };
+
+  const setNA = (field: string) => {
+    handleInputChange(field, "N/A");
+  };
+
+  const handleSubmit = () => {
+    if (!selectedCourseId) {
+      toast({ title: "Course required", description: "Please select an academic program.", variant: "destructive" });
+      return;
+    }
+    if (enrolledSubjectIds.length === 0) {
+      toast({ title: "Subjects required", description: "Please select at least one subject.", variant: "destructive" });
+      return;
+    }
+    enrollmentMutation.mutate({});
   };
 
   const toggleSubject = (id: string) => {
-    setEnrolledSubjects(prev => 
+    setEnrolledSubjectIds(prev => 
       prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]
     );
   };
 
   return (
     <StudentLayout>
-      <div className="max-w-4xl mx-auto space-y-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-900 font-serif">Online Registration</h1>
-          <p className="text-muted-foreground">Complete the steps below to enroll for the upcoming semester.</p>
+      <div className="max-w-5xl mx-auto space-y-8 pb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 font-serif">Online Student Registration</h1>
+            <p className="text-muted-foreground">Please fill out the form carefully using standard information.</p>
+          </div>
+          <div className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold">
+            A.Y. 2026-2027 | 1st Semester
+          </div>
         </div>
 
         {/* Stepper */}
-        <div className="flex items-center justify-center mb-8">
+        <div className="flex items-center justify-center">
           {[1, 2, 3, 4].map((i) => (
             <div key={i} className="flex items-center">
               <div 
-                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-colors ${
-                  step >= i ? "bg-primary text-white" : "bg-slate-200 text-slate-500"
+                className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
+                  step === i ? "ring-4 ring-primary/20 bg-primary text-white scale-110" : 
+                  step > i ? "bg-green-600 text-white" : "bg-slate-200 text-slate-500"
                 }`}
               >
                 {step > i ? <Check className="h-5 w-5" /> : i}
               </div>
+              <div className="mx-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
+                {i === 1 && "Personal Info"}
+                {i === 2 && "Program & Subjects"}
+                {i === 3 && "Documents"}
+                {i === 4 && "Finalize"}
+              </div>
               {i < 4 && (
                 <div 
-                  className={`w-16 h-1 mx-2 transition-colors ${
-                    step > i ? "bg-primary" : "bg-slate-200"
+                  className={`w-12 h-1 mx-2 transition-colors ${
+                    step > i ? "bg-green-600" : "bg-slate-200"
                   }`} 
                 />
               )}
@@ -69,79 +275,373 @@ export default function StudentRegistration() {
           ))}
         </div>
 
-        <Card>
+        <Card className="border-none shadow-2xl overflow-hidden bg-white">
+          <div className="h-2 bg-gradient-to-r from-primary via-blue-600 to-indigo-600" />
+          
           {step === 1 && (
             <>
-              <CardHeader>
-                <CardTitle>Step 1: Student Information</CardTitle>
-                <CardDescription>Update your personal details and contact information.</CardDescription>
+              <CardHeader className="border-b bg-slate-50/50 pb-8">
+                <div className="flex flex-col md:flex-row gap-8">
+                  {/* Photo area */}
+                  <div className="w-32 h-32 border-2 border-dashed border-slate-300 rounded overflow-hidden flex flex-col items-center justify-center bg-white shrink-0 relative hover:border-primary transition-colors cursor-pointer group">
+                    <input 
+                      type="file" 
+                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleFileUpload("photoUrl", file);
+                      }}
+                    />
+                    {formData.photoUrl ? (
+                      <img src={formData.photoUrl} alt="Student" className="w-full h-full object-cover" />
+                    ) : (
+                      <>
+                        <User className="h-10 w-10 text-slate-300 group-hover:text-primary transition-colors" />
+                        <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase">2x2 Photo</span>
+                      </>
+                    )}
+                    {uploadingField === "photoUrl" && (
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-20">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex-1 space-y-2">
+                    <CardTitle className="text-2xl font-serif">I. Student Information</CardTitle>
+                    <CardDescription>All fields marked with an asterisk must be filled out accurately.</CardDescription>
+                  </div>
+                </div>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>First Name</Label>
-                    <Input defaultValue="Juan" />
+              
+              <CardContent className="p-8 space-y-10">
+                {/* Personal Data */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <User className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold text-slate-800">Personal Details</h3>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    <div className="space-y-2">
+                      <Label>Last Name</Label>
+                      <Input className="uppercase" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>First Name</Label>
+                      <Input className="uppercase" value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label>Middle Name</Label>
+                        <button type="button" onClick={() => setNA("middleName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                      </div>
+                      <Input className="uppercase" value={formData.middleName} placeholder='Put "N/A" if none' onChange={(e) => handleInputChange("middleName", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <Label>Extension (Jr/III)</Label>
+                        <button type="button" onClick={() => setNA("extraName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                      </div>
+                      <Input className="uppercase" value={formData.extraName} placeholder='Put "N/A" if none' onChange={(e) => handleInputChange("extraName", e.target.value)} />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label>Date of Birth</Label>
+                      <Input type="date" value={formData.dateOfBirth} onChange={(e) => handleInputChange("dateOfBirth", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Place of Birth</Label>
+                      <Input className="uppercase" value={formData.placeOfBirth} placeholder="City/Provincial" onChange={(e) => handleInputChange("placeOfBirth", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Gender</Label>
+                      <Select defaultValue={formData.gender} onValueChange={(val) => handleInputChange("gender", val)}>
+                        <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Male">Male</SelectItem>
+                          <SelectItem value="Female">Female</SelectItem>
+                          <SelectItem value="Other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label>Religion</Label>
+                      <Input className="uppercase" value={formData.religion} onChange={(e) => handleInputChange("religion", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Nationality</Label>
+                      <Input className="uppercase" value={formData.nationality} onChange={(e) => handleInputChange("nationality", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Civil Status</Label>
+                      <Select defaultValue={formData.civilStatus} onValueChange={(val) => handleInputChange("civilStatus", val)}>
+                        <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Single">Single</SelectItem>
+                          <SelectItem value="Married">Married</SelectItem>
+                          <SelectItem value="Widowed">Widowed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </section>
+
+                {/* Contact Data */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <Phone className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold text-slate-800">Contact Information</h3>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label>Mobile Number</Label>
+                      <Input className="uppercase" placeholder="0917-000-0000" value={formData.mobileNumber} onChange={(e) => handleInputChange("mobileNumber", e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Email Address</Label>
+                      <Input className="uppercase" type="email" placeholder="EXAMPLE@EMAIL.COM" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
+                    </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Last Name</Label>
-                    <Input defaultValue="Dela Cruz" />
+                    <Label>Home Address</Label>
+                    <Input className="uppercase" placeholder="Street, Barangay, City/Municipality, Province" value={formData.address} onChange={(e) => handleInputChange("address", e.target.value)} />
                   </div>
-                </div>
-                <div className="space-y-2">
-                  <Label>Address</Label>
-                  <Input defaultValue="Purok 1, Dimataling, Zamboanga Del Sur" />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Date of Birth</Label>
-                    <Input type="date" />
+                </section>
+
+                {/* Family Data */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <MapPin className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold text-slate-800">Family Information</h3>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Mobile Number</Label>
-                    <Input defaultValue="09123456789" />
+                  
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Father's Full Name</Label>
+                          <button type="button" onClick={() => setNA("fatherName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.fatherName} placeholder='Put "N/A" if not available' onChange={(e) => handleInputChange("fatherName", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Occupation</Label>
+                          <button type="button" onClick={() => setNA("fatherOccupation")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.fatherOccupation} onChange={(e) => handleInputChange("fatherOccupation", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Contact Number</Label>
+                          <button type="button" onClick={() => setNA("fatherContact")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.fatherContact} onChange={(e) => handleInputChange("fatherContact", e.target.value)} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Mother's Full Name</Label>
+                          <button type="button" onClick={() => setNA("motherName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.motherName} placeholder='Put "N/A" if not available' onChange={(e) => handleInputChange("motherName", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Occupation</Label>
+                          <button type="button" onClick={() => setNA("motherOccupation")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.motherOccupation} onChange={(e) => handleInputChange("motherOccupation", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Contact Number</Label>
+                          <button type="button" onClick={() => setNA("motherContact")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.motherContact} onChange={(e) => handleInputChange("motherContact", e.target.value)} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-lg">
+                      <div className="space-y-2">
+                        <Label>Guardian's Full Name</Label>
+                        <Input className="uppercase" placeholder="In case of emergency" value={formData.guardianName} onChange={(e) => handleInputChange("guardianName", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Relationship</Label>
+                        <Input className="uppercase" value={formData.guardianRelationship} onChange={(e) => handleInputChange("guardianRelationship", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Contact Number</Label>
+                        <Input className="uppercase" value={formData.guardianContact} onChange={(e) => handleInputChange("guardianContact", e.target.value)} />
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </section>
+
+                {/* Educational Data */}
+                <section className="space-y-6">
+                  <div className="flex items-center gap-2 pb-2 border-b">
+                    <School className="h-5 w-5 text-primary" />
+                    <h3 className="font-bold text-slate-800">Educational Background</h3>
+                  </div>
+                  
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="md:col-span-3 space-y-2">
+                        <Label>Elementary School</Label>
+                        <Input className="uppercase" value={formData.elementarySchool} onChange={(e) => handleInputChange("elementarySchool", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Year Graduated</Label>
+                        <Input className="uppercase" placeholder="yyyy" value={formData.elementaryYear} onChange={(e) => handleInputChange("elementaryYear", e.target.value)} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="md:col-span-3 space-y-2">
+                        <Label>High School (JHS)</Label>
+                        <Input className="uppercase" value={formData.highSchool} onChange={(e) => handleInputChange("highSchool", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Year Graduated</Label>
+                        <Input className="uppercase" placeholder="yyyy" value={formData.highSchoolYear} onChange={(e) => handleInputChange("highSchoolYear", e.target.value)} />
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                      <div className="md:col-span-3 space-y-2">
+                        <div className="flex justify-between items-center">
+                          <Label>Senior High School (SHS)</Label>
+                          <button type="button" onClick={() => { setNA("seniorHighSchool"); setNA("seniorHighSchoolYear"); }} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                        </div>
+                        <Input className="uppercase" value={formData.seniorHighSchool} placeholder='Put "N/A" if not applicable' onChange={(e) => handleInputChange("seniorHighSchool", e.target.value)} />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Year Graduated</Label>
+                        <Input className="uppercase" placeholder="yyyy" value={formData.seniorHighSchoolYear} onChange={(e) => handleInputChange("seniorHighSchoolYear", e.target.value)} />
+                      </div>
+                    </div>
+                  </div>
+                </section>
               </CardContent>
             </>
           )}
 
           {step === 2 && (
             <>
-              <CardHeader>
-                <CardTitle>Step 2: Academic Program</CardTitle>
-                <CardDescription>Select your course and year level.</CardDescription>
+              <CardHeader className="border-b bg-slate-50/50">
+                <CardTitle className="text-2xl font-serif">II. Academic Program & Subject Selection</CardTitle>
+                <CardDescription>Select your desired program and specific subjects for authorization.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Select Course / Program</Label>
-                  <Select onValueChange={setSelectedCourse} defaultValue={selectedCourse}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a course..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {COURSES.map(course => (
-                        <SelectItem key={course.id} value={course.id}>{course.name}</SelectItem>
+              <CardContent className="p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-2">
+                    <Label>Academic Program</Label>
+                    <Select onValueChange={setSelectedCourseId} defaultValue={selectedCourseId}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Select a course..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courses?.map(course => (
+                          <SelectItem key={course.id} value={course.id}>{course.name} ({course.code})</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                   <div className="space-y-2">
+                    <Label>Year Level</Label>
+                    <Select value={formData.yearLevel} onValueChange={(val) => handleInputChange("yearLevel", val)}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Select year level..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1st Year</SelectItem>
+                        <SelectItem value="2">2nd Year</SelectItem>
+                        <SelectItem value="3">3rd Year</SelectItem>
+                        <SelectItem value="4">4th Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Semester</Label>
+                    <Select value={formData.semester} onValueChange={(val) => handleInputChange("semester", val)}>
+                      <SelectTrigger className="h-12">
+                        <SelectValue placeholder="Select semester..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1st Semester">1st Semester</SelectItem>
+                        <SelectItem value="2nd Semester">2nd Semester</SelectItem>
+                        <SelectItem value="Summer">Summer</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-bold text-slate-800">Available Subjects</h3>
+                      <p className="text-xs text-muted-foreground">Showing subjects for {formData.yearLevel}{Number(formData.yearLevel) === 1 ? 'st' : Number(formData.yearLevel) === 2 ? 'nd' : Number(formData.yearLevel) === 3 ? 'rd' : 'th'} Year - {formData.semester}</p>
+                    </div>
+                    <Badge variant="outline" className="font-mono bg-primary/5 text-primary border-primary/20">{enrolledSubjectIds.length} Subjects Selected</Badge>
+                  </div>
+                  
+                  <div className="border rounded-xl overflow-hidden shadow-sm">
+                    <div className="grid grid-cols-12 bg-slate-900 p-4 font-bold text-xs text-white uppercase tracking-wider">
+                      <div className="col-span-1"></div>
+                      <div className="col-span-2">Code</div>
+                      <div className="col-span-5">Subject Name</div>
+                      <div className="col-span-1 text-center">Units</div>
+                      <div className="col-span-3">Schedule</div>
+                    </div>
+                    <div className="divide-y max-h-[400px] overflow-y-auto">
+                      {subjects?.filter(s => {
+                        const semMap: Record<string, string> = { "1st Semester": "1st", "2nd Semester": "2nd", "Summer": "Summer" };
+                        return s.yearLevel === parseInt(formData.yearLevel) && s.semester === semMap[formData.semester];
+                      }).map((subject) => (
+                        <div key={subject.id} className="grid grid-cols-12 p-4 items-center text-sm hover:bg-blue-50/50 transition-colors">
+                          <div className="col-span-1 flex justify-center">
+                            <Checkbox 
+                              checked={enrolledSubjectIds.includes(subject.id)}
+                              onCheckedChange={() => toggleSubject(subject.id)}
+                            />
+                          </div>
+                          <div className="col-span-2 font-mono text-xs font-bold text-primary">{subject.code}</div>
+                          <div className="col-span-5 font-medium">{subject.name}</div>
+                          <div className="col-span-1 text-center">{subject.units}</div>
+                          <div className="col-span-3 text-muted-foreground text-[11px] font-mono leading-tight">{subject.schedule || "TBA"}</div>
+                        </div>
                       ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Year Level</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select year level..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1st Year</SelectItem>
-                      <SelectItem value="2">2nd Year</SelectItem>
-                      <SelectItem value="3">3rd Year</SelectItem>
-                      <SelectItem value="4">4th Year</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Semester</Label>
-                  <Input value="1st Semester, A.Y. 2025-2026" disabled />
+                      {subjects && subjects.filter(s => {
+                        const semMap: Record<string, string> = { "1st Semester": "1st", "2nd Semester": "2nd", "Summer": "Summer" };
+                        return s.yearLevel === parseInt(formData.yearLevel) && s.semester === semMap[formData.semester];
+                      }).length === 0 && (
+                        <div className="p-16 text-center text-muted-foreground italic flex flex-col items-center gap-3 bg-slate-50/30">
+                          <BookOpen className="h-10 w-10 opacity-10" />
+                          <div className="space-y-1">
+                            <p className="font-medium text-slate-400">No subjects found for this criteria.</p>
+                            <p className="text-xs">Please contact the administrator or check your selection.</p>
+                          </div>
+                        </div>
+                      )}
+                      {!subjects && (
+                        <div className="p-16 text-center text-muted-foreground italic flex flex-col items-center gap-3 bg-slate-50/30">
+                          <Loader2 className="h-8 w-8 animate-spin opacity-20" />
+                          <span>Loading available subjects...</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </>
@@ -149,36 +649,128 @@ export default function StudentRegistration() {
 
           {step === 3 && (
             <>
-              <CardHeader>
-                <CardTitle>Step 3: Subject Selection</CardTitle>
-                <CardDescription>Select the subjects you want to enroll in.</CardDescription>
+              <CardHeader className="border-b bg-slate-50/50">
+                <CardTitle className="text-2xl font-serif">III. Document Requirements</CardTitle>
+                <CardDescription>Upload clear scanned copies or photos of your documentary requirements.</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="border rounded-md">
-                  <div className="grid grid-cols-12 bg-slate-100 p-3 font-medium text-sm text-slate-700">
-                    <div className="col-span-1"></div>
-                    <div className="col-span-2">Code</div>
-                    <div className="col-span-5">Description</div>
-                    <div className="col-span-1">Units</div>
-                    <div className="col-span-3">Schedule</div>
-                  </div>
-                  {SUBJECTS.map((subject) => (
-                    <div key={subject.id} className="grid grid-cols-12 p-3 border-t items-center text-sm hover:bg-slate-50">
-                      <div className="col-span-1">
-                        <Checkbox 
-                          checked={enrolledSubjects.includes(subject.id)}
-                          onCheckedChange={() => toggleSubject(subject.id)}
-                        />
+              <CardContent className="p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Diploma */}
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 hover:border-primary/50 transition-colors bg-slate-50/50">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <FileText className="h-5 w-5" />
                       </div>
-                      <div className="col-span-2 font-mono text-xs">{subject.code}</div>
-                      <div className="col-span-5">{subject.name}</div>
-                      <div className="col-span-1">{subject.units}</div>
-                      <div className="col-span-3 text-muted-foreground text-xs">{subject.schedule}</div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-800">Diploma</h4>
+                        <p className="text-xs text-muted-foreground">High School or SHS Diploma</p>
+                      </div>
                     </div>
-                  ))}
-                  <div className="p-4 bg-slate-50 border-t flex justify-end items-center gap-4">
-                     <span className="text-sm font-medium">Total Units: {enrolledSubjects.length * 3}</span>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload("diplomaUrl", file);
+                        }}
+                      />
+                      <Button variant="outline" className="w-full bg-white border-slate-200" disabled={uploadingField === "diplomaUrl"}>
+                        {uploadingField === "diplomaUrl" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {formData.diplomaUrl ? <><Check className="mr-2 h-4 w-4 text-green-600" /> Uploaded</> : <><Upload className="mr-2 h-4 w-4" /> Select File</>}
+                      </Button>
+                    </div>
                   </div>
+
+                  {/* Form 138 */}
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 hover:border-primary/50 transition-colors bg-slate-50/50">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center text-purple-600">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-800">Form 138 / Report Card</h4>
+                        <p className="text-xs text-muted-foreground">Latest Report Card</p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload("form138Url", file);
+                        }}
+                      />
+                      <Button variant="outline" className="w-full bg-white border-slate-200" disabled={uploadingField === "form138Url"}>
+                        {uploadingField === "form138Url" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {formData.form138Url ? <><Check className="mr-2 h-4 w-4 text-green-600" /> Uploaded</> : <><Upload className="mr-2 h-4 w-4" /> Select File</>}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Good Moral */}
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 hover:border-primary/50 transition-colors bg-slate-50/50">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-10 w-10 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-800">Good Moral Certificate</h4>
+                        <p className="text-xs text-muted-foreground">Certified Good Moral</p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload("goodMoralUrl", file);
+                        }}
+                      />
+                      <Button variant="outline" className="w-full bg-white border-slate-200" disabled={uploadingField === "goodMoralUrl"}>
+                        {uploadingField === "goodMoralUrl" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {formData.goodMoralUrl ? <><Check className="mr-2 h-4 w-4 text-green-600" /> Uploaded</> : <><Upload className="mr-2 h-4 w-4" /> Select File</>}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* PSA */}
+                  <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 hover:border-primary/50 transition-colors bg-slate-50/50">
+                    <div className="flex items-center gap-4 mb-4">
+                      <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600">
+                        <FileText className="h-5 w-5" />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-bold text-slate-800">PSA Birth Certificate</h4>
+                        <p className="text-xs text-muted-foreground">Valid PSA Copy</p>
+                      </div>
+                    </div>
+                    <div className="relative">
+                      <input 
+                        type="file" 
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload("psaUrl", file);
+                        }}
+                      />
+                      <Button variant="outline" className="w-full bg-white border-slate-200" disabled={uploadingField === "psaUrl"}>
+                        {uploadingField === "psaUrl" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                        {formData.psaUrl ? <><Check className="mr-2 h-4 w-4 text-green-600" /> Uploaded</> : <><Upload className="mr-2 h-4 w-4" /> Select File</>}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-4 bg-primary/5 border border-primary/10 rounded-lg text-sm text-primary-foreground/80 flex items-start gap-3">
+                  <div className="mt-0.5">ℹ️</div>
+                  <p>Accepted file formats: PDF, JPG, PNG. Maximum file size: 5MB per file.</p>
                 </div>
               </CardContent>
             </>
@@ -186,74 +778,83 @@ export default function StudentRegistration() {
 
           {step === 4 && (
             <>
-              <CardHeader>
-                <CardTitle>Step 4: Document Upload</CardTitle>
-                <CardDescription>Upload necessary requirements (PDF or JPG).</CardDescription>
+              <CardHeader className="border-b bg-slate-50/50">
+                <CardTitle className="text-2xl font-serif">IV. Review & Finalize</CardTitle>
+                <CardDescription>Review your information before submitting your enrollment application.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-6">
-                  <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 hover:border-primary/50 transition-colors cursor-pointer">
-                    <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center mb-4 text-blue-600">
-                       <FileText className="h-6 w-6" />
+              <CardContent className="p-8 space-y-8">
+                <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl space-y-4">
+                  <h4 className="font-bold text-blue-900 flex items-center gap-2">
+                    <Check className="h-5 w-5" /> Summary of Application
+                  </h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="text-slate-600">Full Name:</div>
+                    <div className="font-bold">{formData.lastName}, {formData.firstName} {formData.middleName}</div>
+                    <div className="text-slate-600">Selected Course:</div>
+                    <div className="font-bold text-primary">{courses?.find(c => c.id === selectedCourseId)?.name}</div>
+                    <div className="text-slate-600">Year Level:</div>
+                    <div className="font-bold">
+                      {formData.yearLevel === "1" ? "1st Year" : 
+                       formData.yearLevel === "2" ? "2nd Year" : 
+                       formData.yearLevel === "3" ? "3rd Year" : 
+                       formData.yearLevel === "4" ? "4th Year" : 
+                       formData.yearLevel}
                     </div>
-                    <h4 className="font-semibold">Form 138 / Report Card</h4>
-                    <p className="text-xs text-muted-foreground mt-1 mb-4">For Freshmen Only</p>
-                    <Button variant="outline" size="sm">
-                      <Upload className="mr-2 h-3 w-3" /> Select File
-                    </Button>
-                  </div>
-
-                   <div className="border-2 border-dashed border-slate-200 rounded-lg p-8 flex flex-col items-center justify-center text-center hover:bg-slate-50 hover:border-primary/50 transition-colors cursor-pointer">
-                    <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center mb-4 text-purple-600">
-                       <FileText className="h-6 w-6" />
-                    </div>
-                    <h4 className="font-semibold">Good Moral Certificate</h4>
-                    <p className="text-xs text-muted-foreground mt-1 mb-4">Required for all students</p>
-                    <Button variant="outline" size="sm">
-                      <Upload className="mr-2 h-3 w-3" /> Select File
-                    </Button>
+                    <div className="text-slate-600">Total Subjects:</div>
+                    <div className="font-bold">{enrolledSubjectIds.length}</div>
+                    <div className="text-slate-600">Documents attached:</div>
+                    <div className="font-bold text-green-600">{(formData.diplomaUrl && formData.form138Url && formData.goodMoralUrl && formData.psaUrl) ? "All Complete" : "Partial"}</div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3 p-4 bg-yellow-50 rounded-md border border-yellow-200">
-                  <Checkbox id="certify" className="mt-1" />
-                  <div className="grid gap-1.5 leading-none">
-                    <label
-                      htmlFor="certify"
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-yellow-900"
-                    >
-                      I certify that the information provided is true and correct.
-                    </label>
-                    <p className="text-sm text-yellow-800/80">
-                      Any false information may be grounds for rejection of this enrollment application.
-                    </p>
+                <div className="space-y-6">
+                  <div className="flex items-start gap-4 p-6 bg-yellow-50 rounded-xl border border-yellow-200">
+                    <Checkbox id="certify" className="mt-1 h-5 w-5" />
+                    <div className="grid gap-2 leading-none">
+                      <label
+                        htmlFor="certify"
+                        className="text-sm font-bold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 text-yellow-900"
+                      >
+                        CERTIFICATION AND DATA PRIVACY CONSENT
+                      </label>
+                      <p className="text-xs text-yellow-800/80 leading-relaxed italic">
+                        I hereby certify that all information given above are true and correct to the best of my knowledge. 
+                        I also authorize ZDSPGC to collect, use and process my personal information in accordance with the 
+                        Data Privacy Act of 2012 for the purpose of my school admission and enrollment.
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>
             </>
           )}
 
-          <CardFooter className="flex justify-between border-t p-6 bg-slate-50/50">
+          <CardFooter className="flex justify-between border-t p-8 bg-slate-50/50">
             <Button 
               variant="outline" 
               onClick={handleBack} 
-              disabled={step === 1 || isSubmitting}
+              disabled={step === 1 || enrollmentMutation.isPending}
+              className="px-8 h-12"
             >
-              <ChevronLeft className="mr-2 h-4 w-4" /> Previous
+              <ChevronLeft className="mr-2 h-4 w-4" /> Go Back
             </Button>
             
             {step < 4 ? (
-              <Button onClick={handleNext}>
+              <Button onClick={handleNext} className="px-10 h-12 bg-primary hover:bg-primary/90">
                 Next Step <ChevronRight className="ml-2 h-4 w-4" />
               </Button>
             ) : (
-              <Button className="bg-primary hover:bg-primary/90 min-w-[150px]" onClick={handleSubmit} disabled={isSubmitting}>
-                {isSubmitting ? (
+              <Button 
+                className="bg-green-600 hover:bg-green-700 min-w-[200px] h-12 shadow-lg shadow-green-600/20" 
+                onClick={handleSubmit} 
+                disabled={enrollmentMutation.isPending}
+              >
+                {enrollmentMutation.isPending ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Submitting...
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...
                   </>
                 ) : (
-                  <>Submit Application</>
+                  <>Submit Registration</>
                 )}
               </Button>
             )}
@@ -263,3 +864,4 @@ export default function StudentRegistration() {
     </StudentLayout>
   );
 }
+
