@@ -12,6 +12,9 @@ import NotFound from "@/pages/not-found";
 // Student Pages
 import StudentDashboard from "@/pages/student/Dashboard";
 import StudentRegistration from "@/pages/student/Registration";
+import StudentProfile from "@/pages/student/Profile";
+import StudentSettings from "@/pages/student/Settings";
+import StudentSchedule from "@/pages/student/Schedule";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
@@ -32,9 +35,10 @@ function Router() {
       {/* Student Routes */}
       <ProtectedRoute path="/student/dashboard" component={StudentDashboard} role="student" />
       <ProtectedRoute path="/student/registration" component={StudentRegistration} role="student" />
-      <ProtectedRoute path="/student/schedule" component={StudentDashboard} role="student" />
+      <ProtectedRoute path="/student/schedule" component={StudentSchedule} role="student" />
       <ProtectedRoute path="/student/grades" component={StudentDashboard} role="student" />
-      <ProtectedRoute path="/student/profile" component={StudentDashboard} role="student" />
+      <ProtectedRoute path="/student/profile" component={StudentProfile} role="student" />
+      <ProtectedRoute path="/student/settings" component={StudentSettings} role="student" />
 
       {/* Admin Routes */}
       <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} role="admin" />

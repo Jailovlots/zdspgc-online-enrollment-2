@@ -125,12 +125,6 @@ export default function StudentDashboard() {
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>
-              <Link href="/student/grades">
-                <Button variant="outline" className="w-full justify-between bg-transparent text-white border-slate-700 hover:bg-slate-800 hover:text-white group" disabled={!isEnrolled}>
-                  View Grades
-                  <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </Link>
               <Link href="/student/registration">
                 <Button variant="outline" className="w-full justify-between bg-transparent text-white border-slate-700 hover:bg-slate-800 hover:text-white group">
                   Enrollment History

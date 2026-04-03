@@ -13,11 +13,30 @@ export default function Login() {
   const { user, loginMutation, registerMutation, isLoading: authLoading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showLoginPw, setShowLoginPw] = useState(false);
 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [showRegPw, setShowRegPw] = useState(false);
+
+  const EyeIcon = ({ show }: { show: boolean }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      {show ? (
+        <>
+          <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+          <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+          <line x1="1" y1="1" x2="23" y2="23"/>
+        </>
+      ) : (
+        <>
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </>
+      )}
+    </svg>
+  );
 
   const search = window.location.search;
   const params = new URLSearchParams(search);
@@ -73,7 +92,12 @@ export default function Login() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
-                      <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+                      <div className="relative">
+                        <Input id="password" type={showLoginPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" required />
+                        <button type="button" onClick={() => setShowLoginPw(v => !v)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1} aria-label={showLoginPw ? "Hide password" : "Show password"}>
+                          <EyeIcon show={showLoginPw} />
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                   <CardFooter className="flex flex-col gap-4">
@@ -112,13 +136,18 @@ export default function Login() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-password">Create Password</Label>
-                      <Input id="new-password" type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} required />
+                      <div className="relative">
+                        <Input id="new-password" type={showRegPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pr-10" required />
+                        <button type="button" onClick={() => setShowRegPw(v => !v)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1} aria-label={showRegPw ? "Hide password" : "Show password"}>
+                          <EyeIcon show={showRegPw} />
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                   <CardFooter>
                     <Button type="submit" className="w-full bg-secondary text-secondary-foreground hover:bg-secondary/80 font-bold" disabled={registerMutation.isPending}>
                       {registerMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                      Create Account & Start Enrollment
+                      Create Account &amp; Start Enrollment
                     </Button>
                   </CardFooter>
                 </Card>
@@ -152,4 +181,3 @@ export default function Login() {
     </div>
   );
 }
-

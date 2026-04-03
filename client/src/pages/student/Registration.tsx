@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, FileText, Check, ChevronRight, ChevronLeft, User, Phone, MapPin, School } from "lucide-react";
+import { Loader2, Upload, FileText, Check, ChevronRight, ChevronLeft, User, Phone, MapPin, School, BookOpen } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Course, Subject } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -280,259 +280,364 @@ export default function StudentRegistration() {
           
           {step === 1 && (
             <>
-              <CardHeader className="border-b bg-slate-50/50 pb-8">
-                <div className="flex flex-col md:flex-row gap-8">
-                  {/* Photo area */}
-                  <div className="w-32 h-32 border-2 border-dashed border-slate-300 rounded overflow-hidden flex flex-col items-center justify-center bg-white shrink-0 relative hover:border-primary transition-colors cursor-pointer group">
-                    <input 
-                      type="file" 
-                      className="absolute inset-0 opacity-0 cursor-pointer z-10" 
-                      accept="image/*"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleFileUpload("photoUrl", file);
-                      }}
-                    />
-                    {formData.photoUrl ? (
-                      <img src={formData.photoUrl} alt="Student" className="w-full h-full object-cover" />
-                    ) : (
-                      <>
-                        <User className="h-10 w-10 text-slate-300 group-hover:text-primary transition-colors" />
-                        <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase">2x2 Photo</span>
-                      </>
-                    )}
-                    {uploadingField === "photoUrl" && (
-                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-20">
-                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                      </div>
-                    )}
+              {/* ── Form Header ── */}
+              <CardHeader className="border-b bg-gradient-to-r from-primary/5 via-blue-50 to-indigo-50 pb-8">
+                <div className="flex flex-col md:flex-row gap-8 items-start">
+                  {/* 2x2 Photo Upload */}
+                  <div className="flex flex-col items-center gap-2 shrink-0">
+                    <div className="w-32 h-40 border-2 border-dashed border-primary/40 rounded-sm overflow-hidden flex flex-col items-center justify-center bg-white relative hover:border-primary transition-colors cursor-pointer group shadow-sm">
+                      <input
+                        type="file"
+                        className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleFileUpload("photoUrl", file);
+                        }}
+                      />
+                      {formData.photoUrl ? (
+                        <img src={formData.photoUrl} alt="Student" className="w-full h-full object-cover" />
+                      ) : (
+                        <>
+                          <User className="h-10 w-10 text-slate-300 group-hover:text-primary transition-colors" />
+                          <span className="text-[10px] font-bold text-slate-400 mt-2 uppercase text-center leading-tight px-2">Upload<br/>2×2 Photo</span>
+                        </>
+                      )}
+                      {uploadingField === "photoUrl" && (
+                        <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-20">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[10px] text-muted-foreground text-center uppercase font-medium tracking-wide">Recent<br/>Photo</span>
                   </div>
-                  
-                  <div className="flex-1 space-y-2">
-                    <CardTitle className="text-2xl font-serif">I. Student Information</CardTitle>
-                    <CardDescription>All fields marked with an asterisk must be filled out accurately.</CardDescription>
+
+                  <div className="flex-1">
+                    <div className="border border-primary/20 rounded-md overflow-hidden bg-white shadow-sm">
+                      {/* Form Title Banner */}
+                      <div className="bg-primary px-5 py-3">
+                        <p className="text-white font-bold uppercase tracking-widest text-sm">Enrollment Application Form</p>
+                        <p className="text-primary-foreground/70 text-xs mt-0.5">A.Y. 2026-2027 • Please write in BLOCK LETTERS</p>
+                      </div>
+                      <div className="px-5 py-4 space-y-1">
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-red-500 font-bold">*</span> Indicates required field. Write <strong>N/A</strong> if not applicable.
+                        </p>
+                        <CardTitle className="text-xl font-serif text-primary">I. Student Personal Information</CardTitle>
+                        <CardDescription className="text-xs">Complete all sections accurately. Falsification of information may result in disqualification.</CardDescription>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
-              
-              <CardContent className="p-8 space-y-10">
-                {/* Personal Data */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-2 pb-2 border-b">
-                    <User className="h-5 w-5 text-primary" />
-                    <h3 className="font-bold text-slate-800">Personal Details</h3>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                    <div className="space-y-2">
-                      <Label>Last Name</Label>
-                      <Input className="uppercase" value={formData.lastName} onChange={(e) => handleInputChange("lastName", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>First Name</Label>
-                      <Input className="uppercase" value={formData.firstName} onChange={(e) => handleInputChange("firstName", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Label>Middle Name</Label>
-                        <button type="button" onClick={() => setNA("middleName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                      </div>
-                      <Input className="uppercase" value={formData.middleName} placeholder='Put "N/A" if none' onChange={(e) => handleInputChange("middleName", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center">
-                        <Label>Extension (Jr/III)</Label>
-                        <button type="button" onClick={() => setNA("extraName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                      </div>
-                      <Input className="uppercase" value={formData.extraName} placeholder='Put "N/A" if none' onChange={(e) => handleInputChange("extraName", e.target.value)} />
-                    </div>
-                  </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label>Date of Birth</Label>
-                      <Input type="date" value={formData.dateOfBirth} onChange={(e) => handleInputChange("dateOfBirth", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Place of Birth</Label>
-                      <Input className="uppercase" value={formData.placeOfBirth} placeholder="City/Provincial" onChange={(e) => handleInputChange("placeOfBirth", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Gender</Label>
-                      <Select defaultValue={formData.gender} onValueChange={(val) => handleInputChange("gender", val)}>
-                        <SelectTrigger><SelectValue placeholder="Select gender" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Male">Male</SelectItem>
-                          <SelectItem value="Female">Female</SelectItem>
-                          <SelectItem value="Other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+              <CardContent className="p-0">
+                {/* ── SECTION A: Personal Data ── */}
+                <div className="border-b">
+                  <div className="bg-slate-800 px-6 py-2 flex items-center gap-2">
+                    <User className="h-3.5 w-3.5 text-slate-300" />
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-widest">A. Personal Data</span>
                   </div>
+                  <div className="p-6 space-y-5">
+                    {/* Name Row */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                      <div className="md:col-span-3 space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Last Name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50 font-medium"
+                          value={formData.lastName}
+                          onChange={(e) => handleInputChange("lastName", e.target.value)}
+                          placeholder="DELA CRUZ"
+                        />
+                      </div>
+                      <div className="md:col-span-3 space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          First Name <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50 font-medium"
+                          value={formData.firstName}
+                          onChange={(e) => handleInputChange("firstName", e.target.value)}
+                          placeholder="JUAN"
+                        />
+                      </div>
+                      <div className="md:col-span-4 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Middle Name</Label>
+                          <button type="button" onClick={() => setNA("middleName")} className="text-[10px] text-primary hover:underline font-bold uppercase px-1">N/A</button>
+                        </div>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50 font-medium"
+                          value={formData.middleName}
+                          placeholder="SANTOS"
+                          onChange={(e) => handleInputChange("middleName", e.target.value)}
+                        />
+                      </div>
+                      <div className="md:col-span-2 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Ext. (Jr/III)</Label>
+                          <button type="button" onClick={() => setNA("extraName")} className="text-[10px] text-primary hover:underline font-bold uppercase px-1">N/A</button>
+                        </div>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50 font-medium"
+                          value={formData.extraName}
+                          placeholder="JR."
+                          onChange={(e) => handleInputChange("extraName", e.target.value)}
+                        />
+                      </div>
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label>Religion</Label>
-                      <Input className="uppercase" value={formData.religion} onChange={(e) => handleInputChange("religion", e.target.value)} />
+                    {/* Birth / Gender / Civil Status */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Date of Birth <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          type="date"
+                          className="border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                          value={formData.dateOfBirth}
+                          onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Place of Birth <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                          value={formData.placeOfBirth}
+                          placeholder="City/Municipality, Province"
+                          onChange={(e) => handleInputChange("placeOfBirth", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Gender <span className="text-red-500">*</span>
+                        </Label>
+                        <Select defaultValue={formData.gender} onValueChange={(val) => handleInputChange("gender", val)}>
+                          <SelectTrigger className="border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 bg-slate-50/50">
+                            <SelectValue placeholder="Select gender" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Male">Male</SelectItem>
+                            <SelectItem value="Female">Female</SelectItem>
+                            <SelectItem value="Other">Other / Prefer not to say</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Nationality</Label>
-                      <Input className="uppercase" value={formData.nationality} onChange={(e) => handleInputChange("nationality", e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label>Civil Status</Label>
-                      <Select defaultValue={formData.civilStatus} onValueChange={(val) => handleInputChange("civilStatus", val)}>
-                        <SelectTrigger><SelectValue placeholder="Select status" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Single">Single</SelectItem>
-                          <SelectItem value="Married">Married</SelectItem>
-                          <SelectItem value="Widowed">Widowed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </section>
 
-                {/* Contact Data */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-2 pb-2 border-b">
-                    <Phone className="h-5 w-5 text-primary" />
-                    <h3 className="font-bold text-slate-800">Contact Information</h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label>Mobile Number</Label>
-                      <Input className="uppercase" placeholder="0917-000-0000" value={formData.mobileNumber} onChange={(e) => handleInputChange("mobileNumber", e.target.value)} />
+                    {/* Religion / Nationality / Civil Status */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Religion <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                          value={formData.religion}
+                          onChange={(e) => handleInputChange("religion", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Nationality <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                          value={formData.nationality}
+                          onChange={(e) => handleInputChange("nationality", e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Civil Status <span className="text-red-500">*</span>
+                        </Label>
+                        <Select defaultValue={formData.civilStatus} onValueChange={(val) => handleInputChange("civilStatus", val)}>
+                          <SelectTrigger className="border-b-2 border-t-0 border-x-0 rounded-none focus:ring-0 bg-slate-50/50">
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Single">Single</SelectItem>
+                            <SelectItem value="Married">Married</SelectItem>
+                            <SelectItem value="Widowed">Widowed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                     </div>
-                    <div className="space-y-2">
-                      <Label>Email Address</Label>
-                      <Input className="uppercase" type="email" placeholder="EXAMPLE@EMAIL.COM" value={formData.email} onChange={(e) => handleInputChange("email", e.target.value)} />
-                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label>Home Address</Label>
-                    <Input className="uppercase" placeholder="Street, Barangay, City/Municipality, Province" value={formData.address} onChange={(e) => handleInputChange("address", e.target.value)} />
-                  </div>
-                </section>
+                </div>
 
-                {/* Family Data */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-2 pb-2 border-b">
-                    <MapPin className="h-5 w-5 text-primary" />
-                    <h3 className="font-bold text-slate-800">Family Information</h3>
+                {/* ── SECTION B: Contact Information ── */}
+                <div className="border-b">
+                  <div className="bg-slate-800 px-6 py-2 flex items-center gap-2">
+                    <Phone className="h-3.5 w-3.5 text-slate-300" />
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-widest">B. Contact Information</span>
                   </div>
-                  
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Father's Full Name</Label>
-                          <button type="button" onClick={() => setNA("fatherName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                        </div>
-                        <Input className="uppercase" value={formData.fatherName} placeholder='Put "N/A" if not available' onChange={(e) => handleInputChange("fatherName", e.target.value)} />
+                  <div className="p-6 space-y-5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Mobile Number <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          className="border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                          placeholder="0917-000-0000"
+                          value={formData.mobileNumber}
+                          onChange={(e) => handleInputChange("mobileNumber", e.target.value)}
+                        />
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Occupation</Label>
-                          <button type="button" onClick={() => setNA("fatherOccupation")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                        </div>
-                        <Input className="uppercase" value={formData.fatherOccupation} onChange={(e) => handleInputChange("fatherOccupation", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Contact Number</Label>
-                          <button type="button" onClick={() => setNA("fatherContact")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                        </div>
-                        <Input className="uppercase" value={formData.fatherContact} onChange={(e) => handleInputChange("fatherContact", e.target.value)} />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Mother's Full Name</Label>
-                          <button type="button" onClick={() => setNA("motherName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                        </div>
-                        <Input className="uppercase" value={formData.motherName} placeholder='Put "N/A" if not available' onChange={(e) => handleInputChange("motherName", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Occupation</Label>
-                          <button type="button" onClick={() => setNA("motherOccupation")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                        </div>
-                        <Input className="uppercase" value={formData.motherOccupation} onChange={(e) => handleInputChange("motherOccupation", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Contact Number</Label>
-                          <button type="button" onClick={() => setNA("motherContact")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
-                        </div>
-                        <Input className="uppercase" value={formData.motherContact} onChange={(e) => handleInputChange("motherContact", e.target.value)} />
+                      <div className="space-y-1">
+                        <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                          Email Address <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          type="email"
+                          className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                          placeholder="EXAMPLE@EMAIL.COM"
+                          value={formData.email}
+                          onChange={(e) => handleInputChange("email", e.target.value)}
+                        />
                       </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 bg-slate-50 p-6 rounded-lg">
-                      <div className="space-y-2">
-                        <Label>Guardian's Full Name</Label>
-                        <Input className="uppercase" placeholder="In case of emergency" value={formData.guardianName} onChange={(e) => handleInputChange("guardianName", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Relationship</Label>
-                        <Input className="uppercase" value={formData.guardianRelationship} onChange={(e) => handleInputChange("guardianRelationship", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Contact Number</Label>
-                        <Input className="uppercase" value={formData.guardianContact} onChange={(e) => handleInputChange("guardianContact", e.target.value)} />
-                      </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">
+                        Permanent Home Address <span className="text-red-500">*</span>
+                      </Label>
+                      <Input
+                        className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50"
+                        placeholder="House No., Street, Barangay, City/Municipality, Province, ZIP Code"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange("address", e.target.value)}
+                      />
                     </div>
                   </div>
-                </section>
+                </div>
 
-                {/* Educational Data */}
-                <section className="space-y-6">
-                  <div className="flex items-center gap-2 pb-2 border-b">
-                    <School className="h-5 w-5 text-primary" />
-                    <h3 className="font-bold text-slate-800">Educational Background</h3>
+                {/* ── SECTION C: Family Background ── */}
+                <div className="border-b">
+                  <div className="bg-slate-800 px-6 py-2 flex items-center gap-2">
+                    <MapPin className="h-3.5 w-3.5 text-slate-300" />
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-widest">C. Family Background</span>
                   </div>
-                  
-                  <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="md:col-span-3 space-y-2">
-                        <Label>Elementary School</Label>
-                        <Input className="uppercase" value={formData.elementarySchool} onChange={(e) => handleInputChange("elementarySchool", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Year Graduated</Label>
-                        <Input className="uppercase" placeholder="yyyy" value={formData.elementaryYear} onChange={(e) => handleInputChange("elementaryYear", e.target.value)} />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="md:col-span-3 space-y-2">
-                        <Label>High School (JHS)</Label>
-                        <Input className="uppercase" value={formData.highSchool} onChange={(e) => handleInputChange("highSchool", e.target.value)} />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Year Graduated</Label>
-                        <Input className="uppercase" placeholder="yyyy" value={formData.highSchoolYear} onChange={(e) => handleInputChange("highSchoolYear", e.target.value)} />
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                      <div className="md:col-span-3 space-y-2">
-                        <div className="flex justify-between items-center">
-                          <Label>Senior High School (SHS)</Label>
-                          <button type="button" onClick={() => { setNA("seniorHighSchool"); setNA("seniorHighSchoolYear"); }} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                  <div className="p-6 space-y-6">
+                    {/* Father */}
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase mb-3 tracking-widest border-b pb-1">Father</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Full Name</Label><button type="button" onClick={() => setNA("fatherName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button></div>
+                          <Input className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50" value={formData.fatherName} onChange={(e) => handleInputChange("fatherName", e.target.value)} placeholder='Full Name' />
                         </div>
-                        <Input className="uppercase" value={formData.seniorHighSchool} placeholder='Put "N/A" if not applicable' onChange={(e) => handleInputChange("seniorHighSchool", e.target.value)} />
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Occupation</Label><button type="button" onClick={() => setNA("fatherOccupation")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button></div>
+                          <Input className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50" value={formData.fatherOccupation} onChange={(e) => handleInputChange("fatherOccupation", e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Contact No.</Label><button type="button" onClick={() => setNA("fatherContact")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button></div>
+                          <Input className="border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50" value={formData.fatherContact} onChange={(e) => handleInputChange("fatherContact", e.target.value)} />
+                        </div>
                       </div>
-                      <div className="space-y-2">
-                        <Label>Year Graduated</Label>
-                        <Input className="uppercase" placeholder="yyyy" value={formData.seniorHighSchoolYear} onChange={(e) => handleInputChange("seniorHighSchoolYear", e.target.value)} />
+                    </div>
+                    {/* Mother */}
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-500 uppercase mb-3 tracking-widest border-b pb-1">Mother</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Full Name (Maiden)</Label><button type="button" onClick={() => setNA("motherName")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button></div>
+                          <Input className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50" value={formData.motherName} onChange={(e) => handleInputChange("motherName", e.target.value)} placeholder='Full Name' />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Occupation</Label><button type="button" onClick={() => setNA("motherOccupation")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button></div>
+                          <Input className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50" value={formData.motherOccupation} onChange={(e) => handleInputChange("motherOccupation", e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <div className="flex justify-between"><Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Contact No.</Label><button type="button" onClick={() => setNA("motherContact")} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button></div>
+                          <Input className="border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-slate-50/50" value={formData.motherContact} onChange={(e) => handleInputChange("motherContact", e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+                    {/* Guardian */}
+                    <div className="bg-amber-50/60 border border-amber-200/60 rounded-md p-4">
+                      <p className="text-[11px] font-bold text-amber-700 uppercase mb-3 tracking-widest">In Case of Emergency / Legal Guardian</p>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Guardian Name</Label>
+                          <Input className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-white/60" placeholder="Full Name" value={formData.guardianName} onChange={(e) => handleInputChange("guardianName", e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Relationship</Label>
+                          <Input className="uppercase border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-white/60" value={formData.guardianRelationship} onChange={(e) => handleInputChange("guardianRelationship", e.target.value)} />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Contact No.</Label>
+                          <Input className="border-b-2 border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-white/60" value={formData.guardianContact} onChange={(e) => handleInputChange("guardianContact", e.target.value)} />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </section>
+                </div>
+
+                {/* ── SECTION D: Educational Background ── */}
+                <div>
+                  <div className="bg-slate-800 px-6 py-2 flex items-center gap-2">
+                    <School className="h-3.5 w-3.5 text-slate-300" />
+                    <span className="text-xs font-bold text-slate-200 uppercase tracking-widest">D. Educational Background</span>
+                  </div>
+                  <div className="p-6">
+                    <div className="border rounded-md overflow-hidden">
+                      {/* Table Header */}
+                      <div className="grid grid-cols-12 bg-slate-100 border-b px-4 py-2 text-[11px] font-bold text-slate-600 uppercase tracking-wide">
+                        <div className="col-span-2">Level</div>
+                        <div className="col-span-7">School Name</div>
+                        <div className="col-span-3 text-center">Year Graduated</div>
+                      </div>
+                      {/* Elementary */}
+                      <div className="grid grid-cols-12 border-b px-4 py-3 items-center gap-3 hover:bg-slate-50/70 transition-colors">
+                        <div className="col-span-2">
+                          <span className="text-xs font-bold text-primary uppercase">Elementary</span>
+                        </div>
+                        <div className="col-span-7">
+                          <Input className="uppercase border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent h-8 text-sm px-0" value={formData.elementarySchool} onChange={(e) => handleInputChange("elementarySchool", e.target.value)} placeholder="Name of School" />
+                        </div>
+                        <div className="col-span-3">
+                          <Input className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent h-8 text-sm text-center px-0" placeholder="YYYY" value={formData.elementaryYear} onChange={(e) => handleInputChange("elementaryYear", e.target.value)} />
+                        </div>
+                      </div>
+                      {/* JHS */}
+                      <div className="grid grid-cols-12 border-b px-4 py-3 items-center gap-3 hover:bg-slate-50/70 transition-colors">
+                        <div className="col-span-2">
+                          <span className="text-xs font-bold text-primary uppercase">Junior HS</span>
+                        </div>
+                        <div className="col-span-7">
+                          <Input className="uppercase border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent h-8 text-sm px-0" value={formData.highSchool} onChange={(e) => handleInputChange("highSchool", e.target.value)} placeholder="Name of School" />
+                        </div>
+                        <div className="col-span-3">
+                          <Input className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent h-8 text-sm text-center px-0" placeholder="YYYY" value={formData.highSchoolYear} onChange={(e) => handleInputChange("highSchoolYear", e.target.value)} />
+                        </div>
+                      </div>
+                      {/* SHS */}
+                      <div className="grid grid-cols-12 px-4 py-3 items-center gap-3 hover:bg-slate-50/70 transition-colors">
+                        <div className="col-span-2 flex items-center gap-1">
+                          <span className="text-xs font-bold text-primary uppercase">Senior HS</span>
+                        </div>
+                        <div className="col-span-7">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] text-muted-foreground">School Name</span>
+                            <button type="button" onClick={() => { setNA("seniorHighSchool"); setNA("seniorHighSchoolYear"); }} className="text-[10px] text-primary hover:underline font-bold uppercase">N/A</button>
+                          </div>
+                          <Input className="uppercase border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent h-8 text-sm px-0" value={formData.seniorHighSchool} onChange={(e) => handleInputChange("seniorHighSchool", e.target.value)} placeholder='Name of School or "N/A"' />
+                        </div>
+                        <div className="col-span-3">
+                          <Input className="border-b border-t-0 border-x-0 rounded-none focus-visible:ring-0 focus-visible:border-primary bg-transparent h-8 text-sm text-center px-0" placeholder="YYYY" value={formData.seniorHighSchoolYear} onChange={(e) => handleInputChange("seniorHighSchoolYear", e.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </CardContent>
             </>
           )}

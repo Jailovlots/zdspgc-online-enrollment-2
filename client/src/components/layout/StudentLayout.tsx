@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   LayoutDashboard,
-  BookOpen,
   Calendar,
   FileText,
   LogOut,
@@ -11,6 +10,7 @@ import {
   User
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useQuery } from "@tanstack/react-query";
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -19,6 +19,10 @@ interface StudentLayoutProps {
 export function StudentLayout({ children }: StudentLayoutProps) {
   const [location] = useLocation();
   const { user, logoutMutation } = useAuth();
+  
+  const { data: profile } = useQuery<any>({
+    queryKey: ["/api/student/profile"],
+  });
 
   const isActive = (path: string) => location === path;
 
@@ -55,12 +59,6 @@ export function StudentLayout({ children }: StudentLayoutProps) {
             </Button>
           </Link>
 
-          <Link href="/student/grades">
-            <Button variant={isActive("/student/grades") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
-              <BookOpen className="h-4 w-4" />
-              Grades
-            </Button>
-          </Link>
 
           <div className="text-xs font-semibold text-muted-foreground mt-6 mb-2 px-2 uppercase tracking-wider">Account</div>
 
@@ -104,7 +102,11 @@ export function StudentLayout({ children }: StudentLayoutProps) {
               Welcome, {user?.username || "Student"}
             </span>
             <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-primary/20">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "Juan"}`} />
+              <AvatarImage 
+                src={profile?.student?.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "Juan"}`} 
+                alt="Student Avatar" 
+                className="object-cover" 
+              />
               <AvatarFallback>{user?.username?.substring(0, 2).toUpperCase() || "JD"}</AvatarFallback>
             </Avatar>
           </div>

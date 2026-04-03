@@ -8,9 +8,15 @@ import { z } from "zod";
 import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Ensure uploads directory exists
+if (!fs.existsSync("uploads")) {
+  fs.mkdirSync("uploads");
+}
 
 const uploadStorage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -22,7 +28,7 @@ const uploadStorage = multer.diskStorage({
   },
 });
 
-const upload = multer({ 
+const upload = multer({
   storage: uploadStorage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
 });
@@ -128,7 +134,7 @@ export async function registerRoutes(
         ...req.body,
         id: req.user.id,
       });
-      
+
       let student = await storage.getStudent(req.user.id);
       const cleanData = (data: any) => {
         const cleaned: any = {};
@@ -139,7 +145,7 @@ export async function registerRoutes(
       };
 
       if (student) {
-        student = await storage.createStudent({
+        student = await storage.updateStudent(req.user.id, {
           ...cleanData(studentData),
           id: req.user.id,
           status: student.status,
@@ -168,11 +174,23 @@ export async function registerRoutes(
   app.post("/api/student/enroll", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { academicYear, semester, subjectIds } = req.body;
-      const enrollment = await storage.createEnrollment(req.user.id, { academicYear, semester }, subjectIds);
+      const { academicYear, semester, subjectIds, yearLevel } = req.body;
+
+      if (!subjectIds || subjectIds.length === 0) {
+        return res.status(400).json({ message: "At least one subject is required for enrollment" });
+      }
+
+      // Check if student already has a pending enrollment
+      const existingEnrollment = await storage.getStudentEnrollment(req.user.id);
+      if (existingEnrollment && existingEnrollment.status === "pending") {
+        return res.status(400).json({ message: "You already have a pending enrollment application" });
+      }
+
+      const enrollment = await storage.createEnrollment(req.user.id, { academicYear, semester, yearLevel }, subjectIds);
       res.status(201).json(enrollment);
-    } catch (err) {
-      res.status(500).send("Internal Server Error");
+    } catch (err: any) {
+      console.error("Enrollment error:", err);
+      res.status(500).json({ message: err.message || "Internal Server Error" });
     }
   });
 
@@ -234,10 +252,10 @@ export async function registerRoutes(
     }
     try {
       const enrollment = await storage.updateEnrollmentStatus(
-        req.params.id, 
-        status, 
-        studentId, 
-        section, 
+        req.params.id,
+        status,
+        studentId,
+        section,
         yearLevel ? parseInt(yearLevel.toString(), 10) : undefined
       );
       res.json(enrollment);
