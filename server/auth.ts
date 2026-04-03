@@ -111,24 +111,49 @@ export function setupAuth(app: Express) {
     res.json(req.user);
   });
 
-  app.post("/api/user/change-password", async (req, res, next) => {
+  app.post("/api/user/update-profile", async (req, res, next) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const { currentPassword, newPassword } = req.body;
-      if (!currentPassword || !newPassword) {
-        return res.status(400).send("Both current and new password are required.");
-      }
-      if (newPassword.length < 6) {
-        return res.status(400).send("New password must be at least 6 characters.");
-      }
+      const { username, currentPassword, newPassword } = req.body;
       const user = await storage.getUser(req.user!.id);
       if (!user) return res.sendStatus(404);
-      const valid = await comparePasswords(currentPassword, user.password);
-      if (!valid) {
-        return res.status(400).send("Current password is incorrect.");
+
+      let hashedPassword = user.password;
+      let updatePw = false;
+      let updateUn = false;
+
+      // 1. Validate Password if changing
+      if (newPassword || currentPassword) {
+        if (!currentPassword) return res.status(400).send("Current password is required to change password.");
+        if (!newPassword) return res.status(400).send("New password is required.");
+        if (newPassword.length < 6) return res.status(400).send("New password must be at least 6 characters.");
+        
+        const valid = await comparePasswords(currentPassword, user.password);
+        if (!valid) return res.status(400).send("Current password is incorrect.");
+        
+        hashedPassword = await hashPassword(newPassword);
+        updatePw = true;
       }
-      const hashed = await hashPassword(newPassword);
-      await storage.updateUserPassword(req.user!.id, hashed);
+
+      // 2. Validate Username if changing
+      if (username && username !== user.username) {
+        if (username.length < 3) return res.status(400).send("Username must be at least 3 characters long.");
+        
+        const existingUser = await storage.getUserByUsername(username);
+        if (existingUser && existingUser.id !== req.user!.id) {
+          return res.status(400).send("Username is already taken.");
+        }
+        updateUn = true;
+      }
+
+      // 3. Execute Updates Securely
+      if (updateUn) {
+        await storage.updateUserUsername(req.user!.id, username);
+      }
+      if (updatePw) {
+        await storage.updateUserPassword(req.user!.id, hashedPassword);
+      }
+
       res.sendStatus(200);
     } catch (err) {
       next(err);

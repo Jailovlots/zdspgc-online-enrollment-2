@@ -9,9 +9,13 @@ import multer from "multer";
 import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
+import NodeCache from "node-cache";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize Cache (node-cache)
+const myCache = new NodeCache({ stdTTL: 300 }); // 5 minutes default TTL
 
 // Ensure uploads directory exists
 if (!fs.existsSync("uploads")) {
@@ -74,26 +78,60 @@ export async function registerRoutes(
   });
 
   // Courses and Subjects
+  let coursesLoading = false;
+
   app.get("/api/courses", async (_req, res) => {
-    const courses = await storage.getAllCourses();
-    res.json(courses);
+    try {
+      const cached = myCache.get("courses");
+      if (cached) {
+        return res.json(JSON.parse(cached as string));
+      }
+    } catch (err) {
+      console.error("Cache get error:", err);
+    }
+
+    if (coursesLoading) {
+      return res.status(503).send("Server busy, try again");
+    }
+
+    coursesLoading = true;
+
+    try {
+      const courses = await storage.getAllCourses();
+
+      try {
+        myCache.set("courses", JSON.stringify(courses));
+      } catch (err) {
+        console.error("Cache set error:", err);
+      }
+
+      coursesLoading = false;
+      res.json(courses);
+    } catch (err) {
+      coursesLoading = false;
+      console.error("Error fetching courses:", err);
+      res.status(500).send("Internal Server Error");
+    }
   });
 
   app.post("/api/courses", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
     const course = await storage.createCourse(req.body);
+    myCache.set("courses", JSON.stringify(await storage.getAllCourses()));
     res.status(201).json(course);
   });
 
   app.patch("/api/courses/:id", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
     const course = await storage.updateCourse(req.params.id, req.body);
+    myCache.set("courses", JSON.stringify(await storage.getAllCourses()));
     res.json(course);
   });
 
   app.delete("/api/courses/:id", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
     await storage.deleteCourse(req.params.id);
+    myCache.set("courses", JSON.stringify(await storage.getAllCourses()));
     res.sendStatus(204);
   });
 
@@ -203,8 +241,23 @@ export async function registerRoutes(
   // Admin Routes
   app.get("/api/admin/students", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
-    const students = await storage.getAllStudents();
-    res.json(students);
+    
+    const limit = parseInt(req.query.limit as string) || 50;
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const [students, total] = await Promise.all([
+      storage.getStudents(limit, offset),
+      storage.getTotalStudentsCount()
+    ]);
+
+    res.json({
+      students,
+      pagination: {
+        total,
+        limit,
+        offset
+      }
+    });
   });
 
   app.patch("/api/admin/students/:id", async (req, res) => {
@@ -232,14 +285,17 @@ export async function registerRoutes(
 
   app.get("/api/admin/stats", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
-    const students = await storage.getAllStudents();
-    const enrollments = await storage.getAllDetailedEnrollments();
-    const coursesCount = (await storage.getAllCourses()).length;
+    
+    const [totalStudents, enrollments, courses] = await Promise.all([
+      storage.getTotalStudentsCount(),
+      storage.getAllDetailedEnrollments(),
+      storage.getAllCourses()
+    ]);
 
     res.json({
-      totalStudents: students.length,
+      totalStudents,
       pendingEnrollments: enrollments.filter(e => e.enrollment.status === "pending").length,
-      activeCourses: coursesCount,
+      activeCourses: courses.length,
       rejections: enrollments.filter(e => e.enrollment.status === "rejected").length,
     });
   });
@@ -261,6 +317,28 @@ export async function registerRoutes(
       res.json(enrollment);
     } catch (err) {
       res.status(500).send("Internal Server Error");
+    }
+  });
+
+  // System Settings
+  app.get("/api/settings", async (_req, res) => {
+    try {
+      const settings = await storage.getSystemSettings();
+      res.json(settings);
+    } catch (err) {
+      console.error("Settings error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  app.post("/api/settings", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+    try {
+      const updated = await storage.updateSystemSettings(req.body);
+      res.json(updated);
+    } catch (err) {
+      console.error("Settings error:", err);
+      res.status(500).json({ message: "Internal Server Error" });
     }
   });
 

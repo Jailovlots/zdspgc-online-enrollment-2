@@ -1,6 +1,6 @@
-import { users, students, courses, subjects, enrollments, enrollmentSubjects, type User, type InsertUser, type Student, type Course, type Subject, type Enrollment } from "@shared/schema";
+import { users, students, courses, subjects, enrollments, enrollmentSubjects, systemSettings, type User, type InsertUser, type Student, type Course, type Subject, type Enrollment, type SystemSettings, type InsertSystemSettings } from "@shared/schema";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
 import connectPg from "connect-pg-simple";
 import { pool } from "./db";
@@ -15,6 +15,7 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: string, hashedPassword: string): Promise<void>;
+  updateUserUsername(id: string, username: string): Promise<User>;
   
   // Student operations
   getStudent(id: string): Promise<Student | undefined>;
@@ -22,6 +23,8 @@ export interface IStorage {
   createStudent(student: Student): Promise<Student>;
   updateStudent(id: string, student: any): Promise<Student>;
   getAllStudents(): Promise<any[]>;
+  getStudents(limit: number, offset: number): Promise<any[]>;
+  getTotalStudentsCount(): Promise<number>;
   
   updateCourse(id: string, course: any): Promise<Course>;
   deleteCourse(id: string): Promise<void>;
@@ -34,10 +37,19 @@ export interface IStorage {
   getPendingEnrollments(): Promise<any[]>;
   getAllDetailedEnrollments(): Promise<any[]>;
   updateEnrollmentStatus(enrollmentId: string, status: string, studentId?: string, section?: string, yearLevel?: number): Promise<Enrollment>;
+  
+  // System Settings
+  getSystemSettings(): Promise<SystemSettings>;
+  updateSystemSettings(data: Partial<SystemSettings>): Promise<SystemSettings>;
 }
 
 export class DatabaseStorage implements IStorage {
   sessionStore: session.Store;
+  
+  // Cache for system settings to prevent frequent DB hits
+  private cachedSettings: SystemSettings | null = null;
+  private settingsCacheTime: number = 0;
+  private readonly CACHE_TTL = 1000 * 60 * 5; // 5 minutes
 
   constructor() {
     this.sessionStore = new PostgresSessionStore({
@@ -63,6 +75,11 @@ export class DatabaseStorage implements IStorage {
 
   async updateUserPassword(id: string, hashedPassword: string): Promise<void> {
     await db.update(users).set({ password: hashedPassword }).where(eq(users.id, id));
+  }
+
+  async updateUserUsername(id: string, username: string): Promise<User> {
+    const [user] = await db.update(users).set({ username }).where(eq(users.id, id)).returning();
+    return user;
   }
 
   async getStudent(id: string): Promise<Student | undefined> {
@@ -107,6 +124,28 @@ export class DatabaseStorage implements IStorage {
       ...item.student,
       course: item.course
     }));
+  }
+
+  async getStudents(limit: number, offset: number): Promise<any[]> {
+    const all = await db
+      .select({
+        student: students,
+        course: courses.code,
+      })
+      .from(students)
+      .leftJoin(courses, eq(students.courseId, courses.id))
+      .limit(limit)
+      .offset(offset);
+
+    return all.map(item => ({
+      ...item.student,
+      course: item.course
+    }));
+  }
+
+  async getTotalStudentsCount(): Promise<number> {
+    const [count] = await db.select({ count: sql<number>`cast(count(*) as int)` }).from(students);
+    return count.count;
   }
 
   async getAllCourses(): Promise<Course[]> {
@@ -256,6 +295,47 @@ export class DatabaseStorage implements IStorage {
 
       return enrollment;
     });
+  }
+
+  async getSystemSettings(): Promise<SystemSettings> {
+    const now = Date.now();
+    
+    // Return cached settings if they exist and haven't expired
+    if (this.cachedSettings && (now - this.settingsCacheTime < this.CACHE_TTL)) {
+      return this.cachedSettings;
+    }
+
+    const [settings] = await db.select().from(systemSettings).where(eq(systemSettings.id, 1));
+    
+    if (!settings) {
+      // Create default settings if they don't exist
+      const [newSettings] = await db.insert(systemSettings).values({ id: 1 }).returning();
+      this.cachedSettings = newSettings;
+      this.settingsCacheTime = now;
+      return newSettings;
+    }
+    
+    this.cachedSettings = settings;
+    this.settingsCacheTime = now;
+    return settings;
+  }
+
+  async updateSystemSettings(data: Partial<SystemSettings>): Promise<SystemSettings> {
+    // Ensure settings exist first
+    await this.getSystemSettings();
+    
+    // Update the row with id 1
+    const [updatedSettings] = await db
+      .update(systemSettings)
+      .set(data)
+      .where(eq(systemSettings.id, 1))
+      .returning();
+      
+    // Invalidate and update cache immediately
+    this.cachedSettings = updatedSettings;
+    this.settingsCacheTime = Date.now();
+      
+    return updatedSettings;
   }
 }
 

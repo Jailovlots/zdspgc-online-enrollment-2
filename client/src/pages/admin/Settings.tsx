@@ -1,98 +1,116 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
-import { useAuth } from "@/hooks/use-auth";
 import { useToast } from "@/hooks/use-toast";
-import { User, Mail, Lock, Shield, CheckCircle2 } from "lucide-react";
-import { useState } from "react";
+import { Settings as SettingsIcon, Globe, Calendar, CheckCircle2 } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import type { SystemSettings } from "@shared/schema";
 
 export default function AdminSettings() {
-  const { user } = useAuth();
   const { toast } = useToast();
   
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [passwordSaving, setPasswordSaving] = useState(false);
+  const { data: settings, isLoading } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
 
-  const handleProfileSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    setProfileSaving(true);
-    // Simulate API call for saving profile
-    setTimeout(() => {
-      setProfileSaving(false);
+  const mutation = useMutation({
+    mutationFn: async (data: Partial<SystemSettings>) => {
+      const res = await apiRequest("POST", "/api/settings", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/settings"], data);
       toast({
-        title: "Profile Updated",
-        description: "Your administrator profile has been updated successfully.",
+        title: "Settings Updated",
+        description: "The system settings have been successfully updated.",
       });
-    }, 800);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update settings.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleGlobalSave = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    mutation.mutate({
+      schoolName: formData.get("schoolName") as string,
+      contactEmail: formData.get("contactEmail") as string,
+      contactNumber: formData.get("contactNumber") as string,
+    });
   };
 
-  const handlePasswordSave = (e: React.FormEvent) => {
+  const handleEnrollmentSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setPasswordSaving(true);
-    // Simulate API call for saving password
-    setTimeout(() => {
-      setPasswordSaving(false);
-      toast({
-        title: "Password Changed",
-        description: "Your account password has been changed securely.",
-      });
-    }, 800);
+    const formData = new FormData(e.currentTarget);
+    mutation.mutate({
+      currentAcademicYear: formData.get("currentAcademicYear") as string,
+      currentSemester: formData.get("currentSemester") as string,
+      enrollmentStatus: formData.get("enrollmentStatus") as string,
+    });
   };
+
+  if (isLoading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center h-[50vh]">
+          <div className="text-muted-foreground animate-pulse">Loading settings...</div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
       <div className="space-y-6 max-w-4xl">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 font-serif flex items-center gap-2">
-            <Shield className="h-8 w-8 text-primary" />
-            Admin Settings
+            <SettingsIcon className="h-8 w-8 text-primary" />
+            Website Settings
           </h1>
-          <p className="text-muted-foreground mt-1">Manage your administrator profile and security preferences.</p>
+          <p className="text-muted-foreground mt-1">Configure global application data, enrollment periods, and system preferences.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Profile Details */}
+          {/* Global System Settings */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-slate-50 border-b pb-4">
               <CardTitle className="text-lg flex items-center gap-2">
-                <User className="h-5 w-5 text-slate-500" />
-                Profile Information
+                <Globe className="h-5 w-5 text-slate-500" />
+                Global Information
               </CardTitle>
-              <CardDescription>Update your personal details and contact info.</CardDescription>
+              <CardDescription>Update general website information.</CardDescription>
             </CardHeader>
-            <form onSubmit={handleProfileSave}>
+            <form onSubmit={handleGlobalSave}>
               <CardContent className="space-y-4 pt-6">
                 <div className="space-y-2">
-                  <Label htmlFor="username">Username</Label>
-                  <Input id="username" defaultValue={user?.username} disabled className="bg-slate-50 cursor-not-allowed" />
-                  <p className="text-[10px] text-slate-400">Username cannot be changed.</p>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
-                    <Input id="firstName" defaultValue={(user as any)?.firstName || "Admin"} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
-                    <Input id="lastName" defaultValue={(user as any)?.lastName || "User"} required />
-                  </div>
+                  <Label htmlFor="schoolName">School Name</Label>
+                  <Input id="schoolName" name="schoolName" defaultValue={settings?.schoolName || "ZDSPGC"} required />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email" className="flex items-center gap-2">
-                    <Mail className="h-3 w-3" /> Email Address
-                  </Label>
-                  <Input id="email" type="email" defaultValue={(user as any)?.email || "admin@school.edu.ph"} required />
+                  <Label htmlFor="contactEmail">Contact Email</Label>
+                  <Input id="contactEmail" name="contactEmail" type="email" defaultValue={settings?.contactEmail || "info@zdspgc.edu.ph"} required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="contactNumber">Contact Number</Label>
+                  <Input id="contactNumber" name="contactNumber" defaultValue={settings?.contactNumber || "+63 912 345 6789"} required />
                 </div>
               </CardContent>
               <CardFooter className="bg-slate-50 border-t py-4 justify-end">
-                <Button type="submit" className="gap-2" disabled={profileSaving}>
-                  {profileSaving ? (
+                <Button type="submit" className="gap-2" disabled={mutation.isPending}>
+                  {mutation.isPending ? (
                     <span className="flex items-center gap-2">Saving...</span>
                   ) : (
                     <>
-                      <CheckCircle2 className="h-4 w-4" /> Save Changes
+                      <CheckCircle2 className="h-4 w-4" /> Save Global Settings
                     </>
                   )}
                 </Button>
@@ -100,35 +118,51 @@ export default function AdminSettings() {
             </form>
           </Card>
 
-          {/* Security & Password */}
+          {/* Enrollment Settings */}
           <Card className="border-slate-200 shadow-sm">
             <CardHeader className="bg-slate-50 border-b pb-4">
               <CardTitle className="text-lg flex items-center gap-2">
-                <Lock className="h-5 w-5 text-slate-500" />
-                Security
+                <Calendar className="h-5 w-5 text-slate-500" />
+                Enrollment Settings
               </CardTitle>
-              <CardDescription>Change your password to secure your account.</CardDescription>
+              <CardDescription>Manage current academic year and semester.</CardDescription>
             </CardHeader>
-            <form onSubmit={handlePasswordSave}>
+            <form onSubmit={handleEnrollmentSave}>
               <CardContent className="space-y-4 pt-6">
                 <div className="space-y-2">
-                  <Label htmlFor="currentPassword">Current Password</Label>
-                  <Input id="currentPassword" type="password" required />
+                  <Label htmlFor="currentAcademicYear">Current Academic Year</Label>
+                  <Input id="currentAcademicYear" name="currentAcademicYear" defaultValue={settings?.currentAcademicYear || "2025-2026"} required />
                 </div>
-                <div className="space-y-4 pt-2 border-t">
-                  <div className="space-y-2">
-                    <Label htmlFor="newPassword">New Password</Label>
-                    <Input id="newPassword" type="password" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
-                    <Input id="confirmPassword" type="password" required />
-                  </div>
+                <div className="space-y-2">
+                  <Label htmlFor="currentSemester">Current Semester</Label>
+                  <Select name="currentSemester" defaultValue={settings?.currentSemester || "1st Semester"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select semester" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1st Semester">1st Semester</SelectItem>
+                      <SelectItem value="2nd Semester">2nd Semester</SelectItem>
+                      <SelectItem value="Summer">Summer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="enrollmentStatus">Enrollment Portal Status</Label>
+                  <Select name="enrollmentStatus" defaultValue={settings?.enrollmentStatus || "open"}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Portal Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="open">Open (Accepting Enrollments)</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </CardContent>
               <CardFooter className="bg-slate-50 border-t py-4 justify-end">
-                <Button type="submit" variant="secondary" className="gap-2 border shadow-sm" disabled={passwordSaving}>
-                  {passwordSaving ? "Updating Security..." : "Change Password"}
+                <Button type="submit" variant="secondary" className="gap-2 border shadow-sm" disabled={mutation.isPending}>
+                  {mutation.isPending ? "Updating..." : "Save Enrollment Settings"}
                 </Button>
               </CardFooter>
             </form>

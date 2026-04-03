@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, boolean, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, boolean, primaryKey, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -76,7 +76,9 @@ export const students = pgTable("students", {
   yearLevel: integer("year_level").default(1),
   section: text("section"),
   status: text("status").notNull().default("not-enrolled"),
-});
+}, (table) => [
+  index("idx_student_id").on(table.studentId),
+]);
 
 export const enrollments = pgTable("enrollments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -94,6 +96,16 @@ export const enrollmentSubjects = pgTable("enrollment_subjects", {
 }, (t) => ({
   pk: primaryKey({ columns: [t.enrollmentId, t.subjectId] }),
 }));
+
+export const systemSettings = pgTable("system_settings", {
+  id: integer("id").primaryKey().default(1),
+  schoolName: text("school_name").notNull().default("ZDSPGC"),
+  contactEmail: text("contact_email").notNull().default("info@zdspgc.edu.ph"),
+  contactNumber: text("contact_number").notNull().default("+63 912 345 6789"),
+  currentAcademicYear: text("current_academic_year").notNull().default("2025-2026"),
+  currentSemester: text("current_semester").notNull().default("1st Semester"), // 1st Semester, 2nd Semester, Summer
+  enrollmentStatus: text("enrollment_status").notNull().default("open"), // open, closed, maintenance
+});
 
 // Session table for connect-pg-simple
 export const sessions = pgTable("session", {
@@ -121,6 +133,10 @@ export const insertSubjectSchema = createInsertSchema(subjects).omit({
   id: true,
 });
 
+export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omit({
+  id: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Course = typeof courses.$inferSelect;
@@ -128,4 +144,6 @@ export type Subject = typeof subjects.$inferSelect;
 export type Student = typeof students.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type EnrollmentSubject = typeof enrollmentSubjects.$inferSelect;
+export type SystemSettings = typeof systemSettings.$inferSelect;
+export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
 

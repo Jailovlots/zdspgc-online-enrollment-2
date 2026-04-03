@@ -8,7 +8,7 @@ import { AlertCircle, CheckCircle2, Clock, FileText, ArrowRight } from "lucide-r
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
-import { Student, Enrollment } from "@shared/schema";
+import { Student, Enrollment, SystemSettings } from "@shared/schema";
 
 export default function StudentDashboard() {
   const { user } = useAuth();
@@ -19,6 +19,10 @@ export default function StudentDashboard() {
 
   const { data: enrollment } = useQuery<any>({
     queryKey: ["/api/student/enrollment"],
+  });
+
+  const { data: settings } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
   });
 
   const student = profile?.student;
@@ -58,10 +62,16 @@ export default function StudentDashboard() {
         {!enrollment && (
           <Alert className="bg-primary/5 border-primary/20 text-primary">
             <AlertCircle className="h-5 w-5" />
-            <AlertTitle className="font-semibold text-lg ml-2">Registration Required</AlertTitle>
+            <AlertTitle className="font-semibold text-lg ml-2">
+              Registration Required for {settings?.currentAcademicYear} ({settings?.currentSemester})
+            </AlertTitle>
             <AlertDescription className="ml-2">
                You haven't started your enrollment for the upcoming semester.
-               <Link href="/student/registration" className="ml-2 font-bold underline">Enroll Now</Link>
+               {settings?.enrollmentStatus === "open" ? (
+                 <Link href="/student/registration" className="ml-2 font-bold underline">Enroll Now</Link>
+               ) : (
+                 <span className="ml-2 text-muted-foreground">(Enrollment is currently closed)</span>
+               )}
             </AlertDescription>
           </Alert>
         )}

@@ -4,8 +4,14 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowRight, GraduationCap, Users, BookOpen, CalendarCheck } from "lucide-react";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { useQuery } from "@tanstack/react-query";
+import type { SystemSettings } from "@shared/schema";
 
 export default function Home() {
+  const { data: settings } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
+
   return (
     <PublicLayout>
       {/* Hero Section */}
@@ -22,23 +28,32 @@ export default function Home() {
 
         <div className="container relative z-10 px-4 text-center md:text-left">
           <div className="max-w-3xl">
-            <Badge className="mb-4 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-1 text-sm rounded-full">
-              Admissions Open for A.Y. 2026-2027
-            </Badge>
+            {settings?.enrollmentStatus === "open" && (
+              <Badge className="mb-4 bg-secondary text-secondary-foreground hover:bg-secondary/90 px-4 py-1 text-sm rounded-full">
+                Admissions Open for A.Y. {settings.currentAcademicYear}
+              </Badge>
+            )}
+            {settings?.enrollmentStatus === "closed" && (
+              <Badge variant="destructive" className="mb-4 px-4 py-1 text-sm rounded-full">
+                Admissions Closed for A.Y. {settings.currentAcademicYear}
+              </Badge>
+            )}
             <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight drop-shadow-sm font-serif">
               Excellence in Education, <br />
               <span className="text-secondary">Service to the Community</span>
             </h1>
             <p className="text-lg md:text-xl text-slate-200 mb-8 leading-relaxed max-w-2xl">
-              Zamboanga Del Sur Provincial Government College – Dimataling Campus provides quality, affordable tertiary education to empower the youth and build future leaders.
+              {settings?.schoolName || "Zamboanga Del Sur Provincial Government College"} – Dimataling Campus provides quality, affordable tertiary education to empower the youth and build future leaders.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <Link href="/login?tab=register">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-white text-lg px-8 h-14 rounded-md shadow-lg shadow-primary/20">
-                  Enroll Now
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
+              {settings?.enrollmentStatus === "open" && (
+                <Link href="/login?tab=register">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-white text-lg px-8 h-14 rounded-md shadow-lg shadow-primary/20">
+                    Enroll Now
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+              )}
               <Link href="/about">
                 <Button size="lg" variant="outline" className="text-white border-white hover:bg-white/10 text-lg px-8 h-14 rounded-md">
                   Learn More
@@ -53,7 +68,7 @@ export default function Home() {
       <section className="py-20 bg-slate-50">
         <div className="container mx-auto px-4">
           <div className="text-center max-w-2xl mx-auto mb-16">
-            <h2 className="text-3xl font-bold text-slate-900 mb-4 font-serif">Why Choose ZDSPGC?</h2>
+            <h2 className="text-3xl font-bold text-slate-900 mb-4 font-serif">Why Choose {settings?.schoolName || "ZDSPGC"}?</h2>
             <p className="text-muted-foreground">We are committed to providing a holistic educational experience that prepares students for the challenges of the modern world.</p>
           </div>
 
