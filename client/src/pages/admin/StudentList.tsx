@@ -538,20 +538,20 @@ export default function StudentList() {
     </Dialog>
 
     {/* PERFECT PRINT VIEW (Isolated from Dialog Portal Constraints) */}
-    <div className="hidden print:block absolute top-0 left-0 w-[210mm] min-h-[297mm] bg-white z-[999999]">
+    <div className="hidden print:flex absolute top-0 left-0 w-full h-full bg-white z-[999999] justify-center text-black">
       <style>{`
         @media print {
-          @page { size: A4 portrait; margin: 0; }
+          @page { size: portrait; margin: 5mm; }
           html, body {
-            background: white !important; margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important;
+            background: white !important; margin: 0 !important; padding: 0 !important; width: 100% !important; height: 100% !important;
           }
           body * { visibility: hidden !important; }
           #standalone-print-record, #standalone-print-record * { visibility: visible !important; }
           #standalone-print-record {
             position: absolute !important; left: 0 !important; top: 0 !important;
-            width: 210mm !important; max-width: 210mm !important; min-height: 297mm !important;
-            background: white !important; margin: 0 !important; padding: 10mm 15mm !important;
-            box-sizing: border-box !important; display: block !important;
+            width: 100% !important; max-width: 100% !important; height: 100% !important; max-height: 100% !important;
+            background: white !important; margin: 0 !important; padding: 5mm !important;
+            box-sizing: border-box !important; display: flex !important; flex-direction: column; justify-content: flex-start;
           }
           .print-hidden { display: none !important; }
           * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
@@ -569,52 +569,52 @@ export default function StudentList() {
 
 function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
   return (
-    <div className="w-full bg-white p-4 print:p-0">
+    <div className="w-full bg-white p-2 print:p-0 flex flex-col h-full overflow-hidden">
       {/* Header matching Registration form exactly */}
-      <div className="flex gap-6 mb-8">
+      <div className="flex gap-4 mb-4 items-center">
         {/* Photo area */}
-        <div className="w-32 shrink-0 flex flex-col items-center">
-          <div className="w-28 h-28 border-2 border-dashed border-teal-600 flex flex-col items-center justify-center text-teal-600/60 p-2 text-center rounded-sm bg-teal-50/10">
+        <div className="w-24 shrink-0 flex flex-col items-center">
+          <div className="w-24 h-24 border-2 border-dashed border-teal-600 flex flex-col items-center justify-center text-teal-600/60 p-1 text-center rounded-sm bg-teal-50/10">
             {selectedStudent?.photoUrl ? (
               <img src={selectedStudent.photoUrl} alt="Photo" className="w-full h-full object-cover" />
             ) : (
               <>
-                <User className="w-8 h-8 mb-1" />
-                <span className="text-[10px] font-bold uppercase leading-tight">Upload 2x2 Photo</span>
+                <User className="w-6 h-6 mb-1" />
+                <span className="text-[9px] font-bold uppercase leading-tight">Upload 2x2</span>
               </>
             )}
           </div>
-          <span className="text-[9px] font-bold text-slate-500 mt-2 uppercase tracking-wide">Recent Photo</span>
+          <span className="text-[8px] font-bold text-slate-500 mt-1 uppercase tracking-wide">Recent Photo</span>
         </div>
 
         {/* Banner */}
-        <div className="flex-1 bg-[#1a734d] text-white p-5 rounded-sm shadow-sm border border-[#145639] self-start flex flex-col justify-center min-h-[112px]">
-          <h2 className="text-xl font-bold uppercase tracking-wide drop-shadow-sm leading-tight">Enrollment Application Form</h2>
-          <p className="text-xs text-green-100 mb-3">A.Y. {selectedStudent?.academicYear || "2026-2027"} • Please write in BLOCK LETTERS</p>
-          <div className="bg-white/95 p-3 rounded-sm text-slate-800 shadow-inner">
-            <p className="text-xs font-bold text-[#1a734d] mb-1">
+        <div className="flex-1 bg-[#1a734d] text-white p-3 rounded-sm shadow-sm border border-[#145639] flex flex-col justify-center">
+          <h2 className="text-lg font-bold uppercase tracking-wide drop-shadow-sm leading-tight m-0">Enrollment Application Form</h2>
+          <p className="text-[10px] text-green-100 mb-2">A.Y. {selectedStudent?.academicYear || "2026-2027"} • Please write in BLOCK LETTERS</p>
+          <div className="bg-white/95 p-2 rounded-sm text-slate-800 shadow-inner">
+            <p className="text-[9px] font-bold text-[#1a734d] mb-1">
               <span className="text-red-500 mr-1">*</span> Indicates required field. Write N/A if not applicable.
             </p>
-            <h3 className="text-lg font-serif font-bold text-slate-800">I. Student Personal Information</h3>
-            <p className="text-[10px] text-slate-500">Complete all sections accurately. Falsification of information may result in disqualification.</p>
+            <h3 className="text-sm font-serif font-bold text-slate-800 m-0">I. Student Personal Information</h3>
+            <p className="text-[9px] text-slate-500 m-0">Complete all sections accurately. Falsification of information may result in disqualification.</p>
           </div>
         </div>
       </div>
 
       {/* Body Sections */}
-      <div className="space-y-6">
+      <div className="space-y-3 flex-1">
 
         {/* A. PERSONAL DATA */}
         <section>
-          <div className="bg-[#1c2a38] text-white px-3 py-2 font-bold text-xs uppercase flex items-center gap-2 mb-4 rounded-sm">
-            <User className="h-4 w-4" /> A. Personal Data
+          <div className="bg-[#1c2a38] text-white px-2 py-1 font-bold text-[10px] uppercase flex items-center gap-2 mb-2 rounded-sm">
+            <User className="h-3 w-3" /> A. Personal Data
           </div>
 
-          <div className="grid grid-cols-12 gap-x-4 gap-y-5 px-1">
+          <div className="grid grid-cols-12 gap-x-3 gap-y-2 px-1">
             <PrintField label="Last Name" value={selectedStudent?.lastName} className="col-span-3" required />
             <PrintField label="First Name" value={selectedStudent?.firstName} className="col-span-4" required />
             <PrintField label="Middle Name" value={selectedStudent?.middleName} className="col-span-3" />
-            <PrintField label="Ext. (Jr/III)" value={selectedStudent?.extraName} className="col-span-2" />
+            <PrintField label="Ext (Jr/III)" value={selectedStudent?.extraName} className="col-span-2" />
 
             <PrintField label="Date of Birth" value={selectedStudent?.dateOfBirth} className="col-span-3" required />
             <PrintField label="Place of Birth" value={selectedStudent?.placeOfBirth} className="col-span-5" required />
@@ -628,11 +628,11 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
 
         {/* B. CONTACT INFORMATION */}
         <section>
-          <div className="bg-[#1c2a38] text-white px-3 py-2 font-bold text-xs uppercase flex items-center gap-2 mb-4 rounded-sm">
-            <Phone className="h-4 w-4" /> B. Contact Information
+          <div className="bg-[#1c2a38] text-white px-2 py-1 font-bold text-[10px] uppercase flex items-center gap-2 mb-2 rounded-sm">
+            <Phone className="h-3 w-3" /> B. Contact Information
           </div>
 
-          <div className="grid grid-cols-12 gap-x-4 gap-y-5 px-1">
+          <div className="grid grid-cols-12 gap-x-3 gap-y-2 px-1">
             <PrintField label="Mobile Number" value={selectedStudent?.mobileNumber} className="col-span-5" required />
             <PrintField label="Email Address" value={selectedStudent?.email} className="col-span-7" required />
             <PrintField label="Permanent Home Address" value={selectedStudent?.address} className="col-span-12" required />
@@ -641,14 +641,14 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
 
         {/* C. FAMILY BACKGROUND */}
         <section>
-          <div className="bg-[#1c2a38] text-white px-3 py-2 font-bold text-xs uppercase flex items-center gap-2 mb-4 rounded-sm">
-            <MapPin className="h-4 w-4" /> C. Family Background
+          <div className="bg-[#1c2a38] text-white px-2 py-1 font-bold text-[10px] uppercase flex items-center gap-2 mb-2 rounded-sm">
+            <MapPin className="h-3 w-3" /> C. Family Background
           </div>
 
-          <div className="space-y-6 px-1">
+          <div className="space-y-3 px-1">
             <div>
-              <p className="font-bold text-[10px] uppercase tracking-widest text-slate-500 mb-3 border-b-2 border-slate-100 pb-1">Father</p>
-              <div className="grid grid-cols-12 gap-4">
+              <p className="font-bold text-[9px] uppercase tracking-widest text-slate-500 mb-1 border-b border-slate-100 pb-0.5 m-0">Father</p>
+              <div className="grid grid-cols-12 gap-3">
                 <PrintField label="Full Name" value={selectedStudent?.fatherName} className="col-span-5" />
                 <PrintField label="Occupation" value={selectedStudent?.fatherOccupation} className="col-span-4" />
                 <PrintField label="Contact No." value={selectedStudent?.fatherContact} className="col-span-3" />
@@ -656,17 +656,17 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
             </div>
 
             <div>
-              <p className="font-bold text-[10px] uppercase tracking-widest text-slate-500 mb-3 border-b-2 border-slate-100 pb-1">Mother</p>
-              <div className="grid grid-cols-12 gap-4">
+              <p className="font-bold text-[9px] uppercase tracking-widest text-slate-500 mb-1 border-b border-slate-100 pb-0.5 m-0">Mother</p>
+              <div className="grid grid-cols-12 gap-3">
                 <PrintField label="Full Name (Maiden)" value={selectedStudent?.motherName} className="col-span-5" />
                 <PrintField label="Occupation" value={selectedStudent?.motherOccupation} className="col-span-4" />
                 <PrintField label="Contact No." value={selectedStudent?.motherContact} className="col-span-3" />
               </div>
             </div>
 
-            <div className="p-4 bg-orange-50/50 border border-orange-100 rounded-sm">
-              <p className="font-bold text-[10px] uppercase tracking-widest text-orange-700 mb-3">In Case of Emergency / Legal Guardian</p>
-              <div className="grid grid-cols-12 gap-4">
+            <div className="p-2 bg-orange-50/50 border border-orange-100 rounded-sm">
+              <p className="font-bold text-[9px] uppercase tracking-widest text-orange-700 mb-1 m-0">In Case of Emergency / Legal Guardian</p>
+              <div className="grid grid-cols-12 gap-3 mt-1">
                 <PrintField label="Guardian Name" value={selectedStudent?.guardianName} className="col-span-5" required />
                 <PrintField label="Relationship" value={selectedStudent?.guardianRelationship} className="col-span-4" required />
                 <PrintField label="Contact No." value={selectedStudent?.guardianContact} className="col-span-3" required />
@@ -677,12 +677,12 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
 
         {/* D. EDUCATIONAL BACKGROUND */}
         <section>
-          <div className="bg-[#1c2a38] text-white px-3 py-2 font-bold text-xs uppercase flex items-center gap-2 mb-4 rounded-sm">
-            <BookOpen className="h-4 w-4" /> D. Educational Background
+          <div className="bg-[#1c2a38] text-white px-2 py-1 font-bold text-[10px] uppercase flex items-center gap-2 mb-2 rounded-sm">
+            <BookOpen className="h-3 w-3" /> D. Educational Background
           </div>
 
           <div className="border border-slate-200 rounded-sm bg-slate-50/30">
-            <div className="grid grid-cols-12 bg-slate-100/80 border-b border-slate-200 px-4 py-3 text-[10px] font-bold text-slate-700 uppercase tracking-wide">
+            <div className="grid grid-cols-12 bg-slate-100/80 border-b border-slate-200 px-3 py-1 text-[9px] font-bold text-slate-700 uppercase tracking-wide">
               <div className="col-span-3">Level</div>
               <div className="col-span-7">School Name</div>
               <div className="col-span-2 text-center">Year Graduated</div>
@@ -692,12 +692,12 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
               { level: "Junior HS", school: selectedStudent?.highSchool, year: selectedStudent?.highSchoolYear },
               { level: "Senior HS", school: selectedStudent?.seniorHighSchool, year: selectedStudent?.seniorHighSchoolYear },
             ].map((row, idx, arr) => (
-              <div key={idx} className={`grid grid-cols-12 px-4 py-3 items-center ${idx < arr.length - 1 ? "border-b border-slate-200" : ""}`}>
-                <div className="col-span-3"><span className="text-xs font-bold uppercase text-[#1a734d] tracking-wide">{row.level}</span></div>
-                <div className="col-span-7"><p className="text-xs font-medium uppercase text-slate-900">{row.school || <span className="text-slate-400 italic">N/A</span>}</p></div>
+              <div key={idx} className={`grid grid-cols-12 px-3 py-1 items-center ${idx < arr.length - 1 ? "border-b border-slate-200" : ""}`}>
+                <div className="col-span-3"><span className="text-[10px] font-bold uppercase text-[#1a734d] tracking-wide">{row.level}</span></div>
+                <div className="col-span-7"><p className="text-[10px] m-0 font-medium uppercase text-slate-900">{row.school || <span className="text-slate-400 italic">N/A</span>}</p></div>
                 <div className="col-span-2 text-center">
-                  <div className="border border-slate-200 bg-white py-1.5 px-2 rounded-sm shadow-sm inline-block min-w[80px]">
-                    <span className="text-xs font-mono font-medium text-slate-700">{row.year || "YYYY"}</span>
+                  <div className="border border-slate-200 bg-white py-0.5 px-1 rounded-sm shadow-sm inline-block min-w[60px]">
+                    <span className="text-[10px] font-mono font-medium text-slate-700">{row.year || "YYYY"}</span>
                   </div>
                 </div>
               </div>
@@ -707,10 +707,10 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
 
         {/* E. ACADEMIC PLACEMENT / ADMIN DATA */}
         <section className="print:break-inside-avoid">
-          <div className="bg-[#1c2a38] text-white px-3 py-2 font-bold text-xs uppercase flex items-center gap-2 mb-4 rounded-sm">
-            <GraduationCap className="h-4 w-4" /> E. Academic Placement & Status
+          <div className="bg-[#1c2a38] text-white px-2 py-1 font-bold text-[10px] uppercase flex items-center gap-2 mb-2 rounded-sm">
+            <GraduationCap className="h-3 w-3" /> E. Academic Placement & Status
           </div>
-          <div className="grid grid-cols-12 gap-x-4 gap-y-5 px-1 bg-yellow-50/30 p-4 border border-yellow-100 rounded-sm">
+          <div className="grid grid-cols-12 gap-x-3 gap-y-2 px-1 bg-yellow-50/30 p-2 border border-yellow-100 rounded-sm">
             <PrintField label="Student ID" value={selectedStudent?.studentId} className="col-span-3" />
             <PrintField label="Year Level" value={selectedStudent?.yearLevel ? `${selectedStudent.yearLevel} Year` : ""} className="col-span-3" />
             <PrintField label="Assigned Section" value={selectedStudent?.section} className="col-span-3" />
@@ -735,15 +735,15 @@ function PrintField({
   required?: boolean;
 }) {
   return (
-    <div className={`flex flex-col space-y-1 ${className}`}>
+    <div className={`flex flex-col space-y-0.5 ${className}`}>
       <div className="flex justify-between items-end">
-        <label className="text-[10px] font-bold text-slate-600 uppercase tracking-wider">
+        <label className="text-[9px] font-bold text-slate-600 uppercase tracking-wider m-0">
           {label} {required && <span className="text-red-500">*</span>}
         </label>
-        {(!value || value.toUpperCase() === "N/A") && !required && <span className="text-[9px] font-bold text-teal-600 uppercase">N/A</span>}
+        {(!value || value.toUpperCase() === "N/A") && !required && <span className="text-[8px] font-bold text-teal-600 uppercase m-0 flex items-end leading-[9px]">N/A</span>}
       </div>
-      <div className="border border-slate-200 px-3 py-2 min-h-[38px] bg-white flex items-center rounded-[2px] shadow-sm">
-        <span className="text-xs font-semibold uppercase text-slate-900 break-words">
+      <div className="border border-slate-200 px-2 py-1 min-h-[26px] bg-white flex items-center rounded-[2px] shadow-sm">
+        <span className="text-[10px] font-semibold uppercase text-slate-900 break-words leading-tight">
           {value || ""}
         </span>
       </div>

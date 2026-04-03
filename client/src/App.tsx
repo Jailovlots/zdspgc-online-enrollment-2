@@ -21,6 +21,7 @@ import AdminDashboard from "@/pages/admin/Dashboard";
 import StudentList from "@/pages/admin/StudentList";
 import AdminEnrollments from "./pages/admin/Enrollments";
 import AdminCourses from "./pages/admin/Courses";
+import AdminSettings from "./pages/admin/Settings";
 
 import { ProtectedRoute } from "./lib/protected-route";
 
@@ -45,6 +46,7 @@ function Router() {
       <ProtectedRoute path="/admin/students" component={StudentList} role="admin" />
       <ProtectedRoute path="/admin/enrollments" component={AdminEnrollments} role="admin" />
       <ProtectedRoute path="/admin/courses" component={AdminCourses} role="admin" />
+      <ProtectedRoute path="/admin/settings" component={AdminSettings} role="admin" />
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />

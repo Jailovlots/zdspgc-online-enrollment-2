@@ -2,12 +2,21 @@ import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   LayoutDashboard,
   Users,
   BookOpen,
   FileCheck,
   Settings,
-  LogOut
+  LogOut,
+  User
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 
@@ -85,15 +94,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </div>
 
         <div className="p-4 border-t border-slate-800 bg-slate-950">
-          <Button
-            variant="ghost"
-            className="w-full gap-2 text-destructive hover:bg-destructive/20 hover:text-destructive justify-start"
-            onClick={() => logoutMutation.mutate()}
-            disabled={logoutMutation.isPending}
-          >
-            <LogOut className="h-4 w-4" />
-            Logout Admin
-          </Button>
+          <div className="text-xs text-slate-500 text-center">Version 1.0</div>
         </div>
       </aside>
 
@@ -105,10 +106,57 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                 'Admin Console'}
           </h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm font-medium text-slate-600">Administrator</span>
-            <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-slate-200">
-              <AvatarFallback className="bg-slate-800 text-white">AD</AvatarFallback>
-            </Avatar>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <div className="flex items-center gap-3 cursor-pointer hover:bg-slate-50 px-2 py-1.5 rounded-md transition-colors border border-transparent hover:border-slate-200">
+                  <div className="text-right hidden sm:block">
+                    <p className="text-sm font-bold text-slate-700 leading-none">
+                      {(user as any)?.firstName ? `${(user as any).firstName} ${(user as any).lastName}` : (user?.username || 'Administrator')}
+                    </p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Admin</p>
+                  </div>
+                  <Avatar className="h-9 w-9 ring-2 ring-primary/20 ring-offset-2 transition-all hover:ring-primary/50">
+                    <AvatarFallback className="bg-primary text-white font-bold uppercase shadow-sm">
+                      {(user as any)?.firstName ? (user as any).firstName[0] : (user?.username?.charAt(0) || 'A')}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 mt-1">
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {(user as any)?.firstName ? `${(user as any).firstName} ${(user as any).lastName}` : (user?.username || 'Administrator')}
+                    </p>
+                    <p className="text-xs text-muted-foreground leading-none mt-1">
+                      {(user as any)?.email || 'admin@school.edu.ph'}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <Link href="/admin/settings">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                </Link>
+                <Link href="/admin/settings">
+                  <DropdownMenuItem className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                </Link>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50"
+                  onClick={() => logoutMutation.mutate()}
+                  disabled={logoutMutation.isPending}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </header>
 
