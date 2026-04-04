@@ -1,4 +1,4 @@
-import { users, students, courses, subjects, enrollments, enrollmentSubjects, systemSettings, type User, type InsertUser, type Student, type Course, type Subject, type Enrollment, type SystemSettings, type InsertSystemSettings } from "@shared/schema";
+import { users, students, courses, subjects, enrollments, enrollmentSubjects, systemSettings, notifications, type User, type InsertUser, type Student, type Course, type Subject, type Enrollment, type SystemSettings, type InsertSystemSettings, type Notification, type InsertNotification } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, sql } from "drizzle-orm";
 import session from "express-session";
@@ -41,6 +41,13 @@ export interface IStorage {
   // System Settings
   getSystemSettings(): Promise<SystemSettings>;
   updateSystemSettings(data: Partial<SystemSettings>): Promise<SystemSettings>;
+
+  // Notification operations
+  createNotification(notification: InsertNotification): Promise<Notification>;
+  getNotificationsByStudent(studentId: string): Promise<Notification[]>;
+
+  // Dashboard Stats
+  getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -336,6 +343,29 @@ export class DatabaseStorage implements IStorage {
     this.settingsCacheTime = Date.now();
       
     return updatedSettings;
+  }
+
+  async createNotification(notification: InsertNotification): Promise<Notification> {
+    const [newNotification] = await db.insert(notifications).values(notification).returning();
+    return newNotification;
+  }
+
+  async getNotificationsByStudent(studentId: string): Promise<Notification[]> {
+    return db.select().from(notifications).where(eq(notifications.studentId, studentId));
+  }
+
+  async getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number }[]> {
+    const results = await db
+      .select({
+        course: courses.code,
+        name: courses.name,
+        count: sql<number>`cast(count(${students.id}) as int)`,
+      })
+      .from(courses)
+      .leftJoin(students, eq(courses.id, students.courseId))
+      .groupBy(courses.code, courses.name);
+
+    return results;
   }
 }
 

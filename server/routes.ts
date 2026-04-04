@@ -10,6 +10,8 @@ import path from "path";
 import { fileURLToPath } from "url";
 import fs from "fs";
 import NodeCache from "node-cache";
+import { notifyStudent } from "./lib/notifications";
+import { broadcastToStudents } from "./lib/socket";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -55,6 +57,36 @@ async function seedData() {
     for (const s of subjects) {
       await storage.createSubject(s);
     }
+  }
+}
+
+/**
+ * Synchronizes key system settings to the .env file.
+ */
+function syncToEnv(updates: Record<string, string>) {
+  try {
+    const envPath = path.resolve(process.cwd(), ".env");
+    let content = "";
+    
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, "utf-8");
+    }
+
+    let lines = content.split("\n");
+    for (const [key, value] of Object.entries(updates)) {
+      if (!value) continue;
+      const index = lines.findIndex(line => line.trim().startsWith(`${key}=`));
+      if (index !== -1) {
+        lines[index] = `${key}=${value}`;
+      } else {
+        lines.push(`${key}=${value}`);
+      }
+    }
+
+    fs.writeFileSync(envPath, lines.join("\n").trim() + "\n");
+    console.log("[SYNC] .env file updated successfully.");
+  } catch (err) {
+    console.error("[SYNC] Error updating .env file:", err);
   }
 }
 
@@ -241,7 +273,7 @@ export async function registerRoutes(
   // Admin Routes
   app.get("/api/admin/students", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
-    
+
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
 
@@ -258,6 +290,51 @@ export async function registerRoutes(
         offset
       }
     });
+  });
+
+  app.post("/api/admin/notify", async (req, res) => {
+    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+    
+    try {
+      const { studentId, courseCode, message, type, subject } = req.body;
+      
+      if (courseCode) {
+        const result = await notifyStudent(type as any, {
+          courseCode,
+          subject: subject || "Course-wide Notification",
+          message
+        });
+        return res.json({ success: true, result });
+      }
+
+      const student = await storage.getStudent(studentId);
+      if (!student) return res.status(404).send("Student not found");
+      
+      const result = await notifyStudent(type, {
+        userId: student.id,
+        toEmail: student.email || undefined,
+        toPhone: student.mobileNumber || undefined,
+        subject: subject || "Notification from ZDSPGC Enrollment System",
+        message
+      });
+      
+      // Log the notification in the record
+      const status = (result.email || result.sms || result.realtime) ? "sent" : "failed";
+      await storage.createNotification({
+        studentId,
+        message,
+        type,
+        status
+      });
+      
+      res.json({
+        success: true,
+        sent: result
+      });
+    } catch (err) {
+      console.error("[NOTIFY] Error processing notification:", err);
+      res.status(500).send("Internal Server Error");
+    }
   });
 
   app.patch("/api/admin/students/:id", async (req, res) => {
@@ -285,19 +362,28 @@ export async function registerRoutes(
 
   app.get("/api/admin/stats", async (req, res) => {
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
-    
-    const [totalStudents, enrollments, courses] = await Promise.all([
-      storage.getTotalStudentsCount(),
-      storage.getAllDetailedEnrollments(),
-      storage.getAllCourses()
-    ]);
 
-    res.json({
-      totalStudents,
-      pendingEnrollments: enrollments.filter(e => e.enrollment.status === "pending").length,
-      activeCourses: courses.length,
-      rejections: enrollments.filter(e => e.enrollment.status === "rejected").length,
-    });
+    try {
+      const [totalStudents, enrollments, coursesList, enrollmentByCourse] = await Promise.all([
+        storage.getTotalStudentsCount(),
+        storage.getAllDetailedEnrollments(),
+        storage.getAllCourses(),
+        storage.getEnrollmentCountsByCourse()
+      ]);
+
+      console.log("[STATS] enrollmentByCourse:", JSON.stringify(enrollmentByCourse));
+
+      res.json({
+        totalStudents,
+        pendingEnrollments: enrollments.filter(e => e.enrollment.status === "pending").length,
+        activeCourses: coursesList.length,
+        rejections: enrollments.filter(e => e.enrollment.status === "rejected").length,
+        enrollmentByCourse
+      });
+    } catch (err) {
+      console.error("[STATS] Error fetching stats:", err);
+      res.status(500).json({ message: "Failed to load statistics", error: String(err) });
+    }
   });
 
   app.patch("/api/admin/enrollments/:id/status", async (req, res) => {
@@ -335,6 +421,24 @@ export async function registerRoutes(
     if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
     try {
       const updated = await storage.updateSystemSettings(req.body);
+      
+      // Sync to .env if relevant fields are present
+      const envUpdates: Record<string, string> = {};
+      if (req.body.sendgridApiKey) envUpdates["SENDGRID_API_KEY"] = req.body.sendgridApiKey;
+      if (req.body.sendgridFromEmail) envUpdates["SENDGRID_FROM_EMAIL"] = req.body.sendgridFromEmail;
+      if (req.body.twilioSid) envUpdates["TWILIO_SID"] = req.body.twilioSid;
+      if (req.body.twilioAuth) envUpdates["TWILIO_AUTH"] = req.body.twilioAuth;
+      if (req.body.twilioPhone) envUpdates["TWILIO_PHONE"] = req.body.twilioPhone;
+      
+      if (Object.keys(envUpdates).length > 0) {
+        syncToEnv(envUpdates);
+      }
+      
+      // Auto-broadcast if enrollment is opened
+      if (req.body.enrollmentStatus === "open") {
+        broadcastToStudents("Enrollment is now open!");
+      }
+      
       res.json(updated);
     } catch (err) {
       console.error("Settings error:", err);

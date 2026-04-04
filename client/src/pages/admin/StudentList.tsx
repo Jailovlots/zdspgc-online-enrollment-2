@@ -4,7 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Check, X, MoreHorizontal, Loader2, FileText } from "lucide-react";
+import { Search, Eye, Check, X, MoreHorizontal, Loader2, FileText, User, Phone, Mail, MapPin, Calendar, Edit as EditIcon, GraduationCap, Users, BookOpen, Printer, Download, Send } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuGroup } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -15,18 +15,28 @@ import {
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { User, Phone, Mail, MapPin, Calendar, Edit as EditIcon, GraduationCap, Users, BookOpen, Printer, Download } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useSearch } from "wouter";
 
 export default function StudentList() {
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
+  const search = useSearch();
+  const params = new URLSearchParams(search);
+  const courseFilter = params.get("course") || "";
+  
+  const [searchTerm, setSearchTerm] = useState(courseFilter);
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
   const [isProfileDialogOpen, setIsProfileDialogOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false);
+  const [selectedNotifyStudent, setSelectedNotifyStudent] = useState<any>(null);
 
-  const { data: students, isLoading } = useQuery<any[]>({
+  const { data, isLoading } = useQuery<any>({
     queryKey: ["/api/admin/students"],
   });
+
+  const students = data?.students || [];
 
   const updateStatusMutation = useMutation({
     mutationFn: async ({ studentId, enrollmentId, status }: { studentId: string, enrollmentId: string, status: string }) => {
@@ -65,7 +75,28 @@ export default function StudentList() {
     onError: (e: Error) => toast({ title: "Update failed", description: e.message, variant: "destructive" }),
   });
 
-  const filteredStudents = students?.filter(student =>
+  const sendNotificationMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await apiRequest("POST", "/api/admin/notify", payload);
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Message Sent",
+        description: "The notification has been sent successfully.",
+      });
+      setIsNotifyDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  const filteredStudents = (students as any[])?.filter((student: any) =>
     (student.status === "approved" || student.status === "enrolled") &&
     (student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       student.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -85,15 +116,26 @@ export default function StudentList() {
               toast({ title: "No data", description: "No approved students found.", variant: "destructive" });
               return;
             }
-            const headers = ["Student ID", "Student Name", "Course", "Year Level", "Section", "Status", "Email", "Mobile Number"];
+            const headers = ["Student ID", "Student Name", "Course", "Year Level", "Section", "Status"];
             const csvRows = [
               headers.join(","),
-              ...filteredStudents.map(s => {
+              ...filteredStudents.map((s: any) => {
                 const name = `${s.lastName || ""}, ${s.firstName || ""}`.trim();
-                const year = s.yearLevel ? `${s.yearLevel}` : "";
+                const yearLevel = s.yearLevel ? (
+                  Number(s.yearLevel) === 1 ? "1st Year" :
+                  Number(s.yearLevel) === 2 ? "2nd Year" :
+                  Number(s.yearLevel) === 3 ? "3rd Year" :
+                  Number(s.yearLevel) === 4 ? "4th Year" :
+                  `${s.yearLevel}th Year`
+                ) : "N/A";
+                
                 return [
-                  `"${s.studentId || ""}"`, `"${name}"`, `"${s.course || ""}"`, `"${year}"`, `"${s.section || ""}"`,
-                  `"${s.status || ""}"`, `"${s.email || ""}"`, `"${s.mobileNumber || ""}"`
+                  `"${s.studentId || ""}"`, 
+                  `"${name}"`, 
+                  `"${s.course || "N/A"}"`, 
+                  `"${yearLevel}"`, 
+                  `"${s.section || "NOT SET"}"`,
+                  `"${(s.status || "").toUpperCase()}"`
                 ].join(",");
               })
             ];
@@ -142,7 +184,7 @@ export default function StudentList() {
                   </TableCell>
                 </TableRow>
               ) : filteredStudents.length > 0 ? (
-                filteredStudents.map((student) => {
+                filteredStudents.map((student: any) => {
                   return (
                     <TableRow key={student.id}>
                       <TableCell className="font-mono text-xs">{student.studentId || "PENDING"}</TableCell>
@@ -223,6 +265,9 @@ export default function StudentList() {
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => { setSelectedStudent(student); setIsEditing(true); setIsProfileDialogOpen(true); }}>
                               <EditIcon className="mr-2 h-4 w-4" /> Edit Record
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => { setSelectedNotifyStudent(student); setIsNotifyDialogOpen(true); }}>
+                              <Send className="mr-2 h-4 w-4 text-primary" /> Send Message
                             </DropdownMenuItem>
                             {student.status === "pending" && (
                               <>
@@ -563,6 +608,94 @@ export default function StudentList() {
         </div>
       )}
     </div>
+
+    {/* Notification Dialog */}
+    <Dialog open={isNotifyDialogOpen} onOpenChange={setIsNotifyDialogOpen}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader className="print-hidden">
+          <DialogTitle className="flex items-center gap-2">
+            <Send className="h-5 w-5 text-primary" />
+            Send Notification
+          </DialogTitle>
+          <DialogDescription>
+            Send a message to {selectedNotifyStudent?.firstName} {selectedNotifyStudent?.lastName} via Email or SMS.
+          </DialogDescription>
+        </DialogHeader>
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const formData = new FormData(e.currentTarget);
+            sendNotificationMutation.mutate({
+              studentId: selectedNotifyStudent.id,
+              message: formData.get("message"),
+              type: formData.get("type"),
+              subject: formData.get("subject"),
+            });
+          }}
+          className="space-y-4 py-4 print-hidden"
+        >
+          <div className="space-y-2">
+            <Label htmlFor="type">Delivery Method</Label>
+            <Select name="type" defaultValue="email">
+              <SelectTrigger>
+                <SelectValue placeholder="Select method" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">Email (Gmail)</SelectItem>
+                <SelectItem value="sms">SMS (Phone)</SelectItem>
+                <SelectItem value="realtime">Real-time (In-App)</SelectItem>
+                <SelectItem value="both">Both Email & SMS</SelectItem>
+                <SelectItem value="all">All (Email, SMS & In-App)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="subject">Subject (for Email)</Label>
+            <Input
+              id="subject"
+              name="subject"
+              defaultValue="Notification from ZDSPGC Enrollment System"
+              placeholder="Enter subject"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="message">Message Content</Label>
+            <Textarea
+              id="message"
+              name="message"
+              placeholder="Type your message here..."
+              className="min-h-[120px]"
+              required
+            />
+            <p className="text-[10px] text-muted-foreground italic">
+              Note: Standard message rates may apply for SMS notifications.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsNotifyDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={sendNotificationMutation.isPending}>
+              {sendNotificationMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Send className="mr-2 h-4 w-4" />
+                  Send Now
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </AdminLayout>
   );
 }

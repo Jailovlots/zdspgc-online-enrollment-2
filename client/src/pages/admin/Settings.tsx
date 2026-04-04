@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Settings as SettingsIcon, Globe, Calendar, CheckCircle2 } from "lucide-react";
+import { Settings as SettingsIcon, Globe, Calendar, CheckCircle2, Mail } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { SystemSettings } from "@shared/schema";
@@ -17,31 +17,52 @@ export default function AdminSettings() {
     queryKey: ["/api/settings"],
   });
 
-  const mutation = useMutation({
+  const globalMutation = useMutation({
     mutationFn: async (data: Partial<SystemSettings>) => {
       const res = await apiRequest("POST", "/api/settings", data);
       return res.json();
     },
     onSuccess: (data) => {
       queryClient.setQueryData(["/api/settings"], data);
-      toast({
-        title: "Settings Updated",
-        description: "The system settings have been successfully updated.",
-      });
+      toast({ title: "Global Settings Updated", description: "The system settings have been successfully updated." });
     },
     onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update settings.",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: error.message || "Failed to update global settings.", variant: "destructive" });
+    }
+  });
+
+  const enrollmentMutation = useMutation({
+    mutationFn: async (data: Partial<SystemSettings>) => {
+      const res = await apiRequest("POST", "/api/settings", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/settings"], data);
+      toast({ title: "Enrollment Settings Updated", description: "The enrollment settings have been successfully updated." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update enrollment settings.", variant: "destructive" });
+    }
+  });
+
+  const messagingMutation = useMutation({
+    mutationFn: async (data: Partial<SystemSettings>) => {
+      const res = await apiRequest("POST", "/api/settings", data);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(["/api/settings"], data);
+      toast({ title: "Messaging Credentials Updated", description: "Your messaging credentials have been synced to .env." });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message || "Failed to update messaging settings.", variant: "destructive" });
     }
   });
 
   const handleGlobalSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    mutation.mutate({
+    globalMutation.mutate({
       schoolName: formData.get("schoolName") as string,
       contactEmail: formData.get("contactEmail") as string,
       contactNumber: formData.get("contactNumber") as string,
@@ -51,10 +72,22 @@ export default function AdminSettings() {
   const handleEnrollmentSave = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    mutation.mutate({
+    enrollmentMutation.mutate({
       currentAcademicYear: formData.get("currentAcademicYear") as string,
       currentSemester: formData.get("currentSemester") as string,
       enrollmentStatus: formData.get("enrollmentStatus") as string,
+    });
+  };
+
+  const handleMessagingSave = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    messagingMutation.mutate({
+      sendgridApiKey: formData.get("sendgridApiKey") as string,
+      sendgridFromEmail: formData.get("sendgridFromEmail") as string,
+      twilioSid: formData.get("twilioSid") as string,
+      twilioAuth: formData.get("twilioAuth") as string,
+      twilioPhone: formData.get("twilioPhone") as string,
     });
   };
 
@@ -105,8 +138,8 @@ export default function AdminSettings() {
                 </div>
               </CardContent>
               <CardFooter className="bg-slate-50 border-t py-4 justify-end">
-                <Button type="submit" className="gap-2" disabled={mutation.isPending}>
-                  {mutation.isPending ? (
+                <Button type="submit" className="gap-2" disabled={globalMutation.isPending}>
+                  {globalMutation.isPending ? (
                     <span className="flex items-center gap-2">Saving...</span>
                   ) : (
                     <>
@@ -161,8 +194,91 @@ export default function AdminSettings() {
                 </div>
               </CardContent>
               <CardFooter className="bg-slate-50 border-t py-4 justify-end">
-                <Button type="submit" variant="secondary" className="gap-2 border shadow-sm" disabled={mutation.isPending}>
-                  {mutation.isPending ? "Updating..." : "Save Enrollment Settings"}
+                <Button type="submit" variant="secondary" className="gap-2 border shadow-sm" disabled={enrollmentMutation.isPending}>
+                  {enrollmentMutation.isPending ? "Updating..." : "Save Enrollment Settings"}
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+
+          {/* Messaging & Notification Settings */}
+          <Card className="border-slate-200 shadow-sm md:col-span-2">
+            <CardHeader className="bg-slate-50 border-b pb-4">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Mail className="h-5 w-5 text-slate-500" />
+                Messaging & Notification Credentials
+              </CardTitle>
+              <CardDescription>
+                Configure the SendGrid API Key and Verified Sender email used to send automated notifications to students.
+                Updating these will automatically synchronize with your <code>.env</code> configuration.
+              </CardDescription>
+            </CardHeader>
+            <form onSubmit={handleMessagingSave}>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6">
+                <div className="space-y-2">
+                  <Label htmlFor="sendgridApiKey">SendGrid API Key (SENDGRID_API_KEY)</Label>
+                  <Input 
+                    id="sendgridApiKey" 
+                    name="sendgridApiKey" 
+                    type="password" 
+                    defaultValue={settings?.sendgridApiKey || ""} 
+                    placeholder="SG.xxxxxxxxxxxxxx"
+                    required 
+                  />
+                  <p className="text-[10px] text-muted-foreground">Obtain this from your SendGrid Dashboard &gt; Settings &gt; API Keys.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="sendgridFromEmail">Verified Sender Email</Label>
+                  <Input 
+                    id="sendgridFromEmail" 
+                    name="sendgridFromEmail" 
+                    type="email" 
+                    defaultValue={settings?.sendgridFromEmail || ""} 
+                    placeholder="noreply@zdspgc.edu.ph"
+                    required
+                  />
+                  <p className="text-[10px] text-muted-foreground">The email address must be verified in your SendGrid Sender Authentication settings.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="twilioSid">Twilio Account SID (TWILIO_SID)</Label>
+                  <Input 
+                    id="twilioSid" 
+                    name="twilioSid" 
+                    type="password" 
+                    defaultValue={settings?.twilioSid || ""} 
+                    placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Obtain this from your Twilio Console dashboard.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="twilioAuth">Twilio Auth Token (TWILIO_AUTH)</Label>
+                  <Input 
+                    id="twilioAuth" 
+                    name="twilioAuth" 
+                    type="password" 
+                    defaultValue={settings?.twilioAuth || ""} 
+                    placeholder="Enter your Twilio Auth Token"
+                  />
+                  <p className="text-[10px] text-muted-foreground">The authentication token provided by Twilio.</p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="twilioPhone">Twilio Phone Number (TWILIO_PHONE)</Label>
+                  <Input 
+                    id="twilioPhone" 
+                    name="twilioPhone" 
+                    defaultValue={settings?.twilioPhone || ""} 
+                    placeholder="+1234567890"
+                  />
+                  <p className="text-[10px] text-muted-foreground">Your assigned Twilio phone number in E.164 format.</p>
+                </div>
+              </CardContent>
+              <CardFooter className="bg-slate-50 border-t py-4 justify-end">
+                <Button type="submit" className="gap-2" disabled={messagingMutation.isPending}>
+                  {messagingMutation.isPending ? "Updating Credentials..." : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4" /> Save & Sync to .env
+                    </>
+                  )}
                 </Button>
               </CardFooter>
             </form>

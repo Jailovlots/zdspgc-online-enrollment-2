@@ -76,9 +76,7 @@ export const students = pgTable("students", {
   yearLevel: integer("year_level").default(1),
   section: text("section"),
   status: text("status").notNull().default("not-enrolled"),
-}, (table) => [
-  index("idx_student_id").on(table.studentId),
-]);
+});
 
 export const enrollments = pgTable("enrollments", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
@@ -105,6 +103,12 @@ export const systemSettings = pgTable("system_settings", {
   currentAcademicYear: text("current_academic_year").notNull().default("2025-2026"),
   currentSemester: text("current_semester").notNull().default("1st Semester"), // 1st Semester, 2nd Semester, Summer
   enrollmentStatus: text("enrollment_status").notNull().default("open"), // open, closed, maintenance
+  gmailPass: text("gmail_pass"),
+  sendgridApiKey: text("sendgrid_api_key"),
+  sendgridFromEmail: text("sendgrid_from_email"),
+  twilioSid: text("twilio_sid"),
+  twilioAuth: text("twilio_auth"),
+  twilioPhone: text("twilio_phone"),
 });
 
 // Session table for connect-pg-simple
@@ -112,6 +116,15 @@ export const sessions = pgTable("session", {
     sid: varchar("sid").primaryKey(),
     sess: text("sess").notNull(),
     expire: timestamp("expire").notNull(),
+});
+
+export const notifications = pgTable("notifications", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  studentId: varchar("student_id").references(() => students.id).notNull(),
+  message: text("message").notNull(),
+  type: text("type").notNull(), // 'email', 'sms', 'both'
+  status: text("status").notNull().default("sent"),
+  sentAt: timestamp("sent_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -137,6 +150,11 @@ export const insertSystemSettingsSchema = createInsertSchema(systemSettings).omi
   id: true,
 });
 
+export const insertNotificationSchema = createInsertSchema(notifications).omit({
+  id: true,
+  sentAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type Course = typeof courses.$inferSelect;
@@ -145,5 +163,7 @@ export type Student = typeof students.$inferSelect;
 export type Enrollment = typeof enrollments.$inferSelect;
 export type EnrollmentSubject = typeof enrollmentSubjects.$inferSelect;
 export type SystemSettings = typeof systemSettings.$inferSelect;
+export type Notification = typeof notifications.$inferSelect;
 export type InsertSystemSettings = z.infer<typeof insertSystemSettingsSchema>;
+export type InsertNotification = z.infer<typeof insertNotificationSchema>;
 
