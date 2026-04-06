@@ -5,7 +5,7 @@ import { Redirect, Route } from "wouter";
 type ProtectedRouteProps = {
   path: string;
   component: React.ComponentType<any>;
-  role?: "admin" | "student";
+  role?: "admin" | "student" | "officer" | string[];
 };
 
 export function ProtectedRoute({
@@ -33,12 +33,15 @@ export function ProtectedRoute({
     );
   }
 
-  if (role && user.role !== role) {
-    return (
-      <Route path={path}>
-        <Redirect to={user.role === "admin" ? "/admin/dashboard" : "/student/dashboard"} />
-      </Route>
-    );
+  if (role) {
+    const roles = Array.isArray(role) ? role : [role];
+    if (!roles.includes(user.role)) {
+      return (
+        <Route path={path}>
+          <Redirect to={user.role === "admin" || user.role === "officer" ? "/admin/dashboard" : "/student/dashboard"} />
+        </Route>
+      );
+    }
   }
 
   return <Route path={path} component={Component} />;

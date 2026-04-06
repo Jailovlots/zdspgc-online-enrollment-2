@@ -77,7 +77,7 @@ export default function Login() {
             </TabsList>
 
             <TabsContent value="login">
-              <form onSubmit={onLogin}>
+              <form onSubmit={onLogin} autoComplete="off">
                 <Card>
                   <CardHeader>
                     <CardTitle>Sign In</CardTitle>
@@ -88,12 +88,12 @@ export default function Login() {
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
                       <Label htmlFor="id-number">Username</Label>
-                      <Input id="id-number" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required />
+                      <Input id="id-number" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username" required autoComplete="off" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="password">Password</Label>
                       <div className="relative">
-                        <Input id="password" type={showLoginPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" required />
+                        <Input id="password" type={showLoginPw ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} className="pr-10" required autoComplete="off" />
                         <button type="button" onClick={() => setShowLoginPw(v => !v)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1} aria-label={showLoginPw ? "Hide password" : "Show password"}>
                           <EyeIcon show={showLoginPw} />
                         </button>
@@ -111,7 +111,7 @@ export default function Login() {
             </TabsContent>
 
             <TabsContent value="register">
-              <form onSubmit={onRegister}>
+              <form onSubmit={onRegister} autoComplete="off">
                 <Card>
                   <CardHeader>
                     <CardTitle>New Student Enrollment</CardTitle>
@@ -123,21 +123,21 @@ export default function Login() {
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="first-name">First Name</Label>
-                        <Input id="first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Juan" required />
+                        <Input id="first-name" value={firstName} onChange={(e) => setFirstName(e.target.value)} placeholder="Juan" required autoComplete="off" />
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="last-name">Last Name</Label>
-                        <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Dela Cruz" required />
+                        <Input id="last-name" value={lastName} onChange={(e) => setLastName(e.target.value)} placeholder="Dela Cruz" required autoComplete="off" />
                       </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="reg-username">Username</Label>
-                      <Input id="reg-username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Choose a username" required />
+                      <Input id="reg-username" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} placeholder="Choose a username" required autoComplete="off" />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="new-password">Create Password</Label>
                       <div className="relative">
-                        <Input id="new-password" type={showRegPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pr-10" required />
+                        <Input id="new-password" type={showRegPw ? "text" : "password"} value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="pr-10" required autoComplete="new-password" />
                         <button type="button" onClick={() => setShowRegPw(v => !v)} className="absolute inset-y-0 right-0 flex items-center pr-3 text-muted-foreground hover:text-foreground transition-colors" tabIndex={-1} aria-label={showRegPw ? "Hide password" : "Show password"}>
                           <EyeIcon show={showRegPw} />
                         </button>

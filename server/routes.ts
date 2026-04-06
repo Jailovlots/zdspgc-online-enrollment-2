@@ -2,19 +2,15 @@ import type { Express } from "express";
 import express from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth } from "./auth";
-import { insertStudentSchema, insertEnrollmentSchema } from "@shared/schema";
+import { setupAuth, hashPassword } from "./auth";
+import { insertStudentSchema, insertEnrollmentSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
 import path from "path";
-import { fileURLToPath } from "url";
 import fs from "fs";
 import NodeCache from "node-cache";
 import { notifyStudent } from "./lib/notifications";
-import { broadcastToStudents } from "./lib/socket";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { broadcastToStudents, sendRealTimeMessage } from "./lib/socket";
 
 // Initialize Cache (node-cache)
 const myCache = new NodeCache({ stdTTL: 300 }); // 5 minutes default TTL
@@ -97,6 +93,21 @@ export async function registerRoutes(
   setupAuth(app);
   await seedData();
 
+  // Helper middleware for RBAC
+  const isAdmin = (req: any, res: any, next: any) => {
+    if (!req.isAuthenticated() || req.user.role !== "admin") {
+      return res.status(403).send("Forbidden: Administrative Office Only");
+    }
+    next();
+  };
+
+  const isStaff = (req: any, res: any, next: any) => {
+    if (!req.isAuthenticated() || (req.user.role !== "admin" && req.user.role !== "officer")) {
+      return res.status(403).send("Forbidden: Staff Only");
+    }
+    next();
+  };
+
   // Static serving for uploads
   app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
 
@@ -146,22 +157,19 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/courses", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.post("/api/courses", isStaff, async (req, res) => {
     const course = await storage.createCourse(req.body);
     myCache.set("courses", JSON.stringify(await storage.getAllCourses()));
     res.status(201).json(course);
   });
 
-  app.patch("/api/courses/:id", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.patch("/api/courses/:id", isStaff, async (req, res) => {
     const course = await storage.updateCourse(req.params.id, req.body);
     myCache.set("courses", JSON.stringify(await storage.getAllCourses()));
     res.json(course);
   });
 
-  app.delete("/api/courses/:id", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.delete("/api/courses/:id", isStaff, async (req, res) => {
     await storage.deleteCourse(req.params.id);
     myCache.set("courses", JSON.stringify(await storage.getAllCourses()));
     res.sendStatus(204);
@@ -172,20 +180,17 @@ export async function registerRoutes(
     res.json(subjects);
   });
 
-  app.post("/api/subjects", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.post("/api/subjects", isStaff, async (req, res) => {
     const subject = await storage.createSubject(req.body);
     res.status(201).json(subject);
   });
 
-  app.patch("/api/subjects/:id", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.patch("/api/subjects/:id", isStaff, async (req, res) => {
     const subject = await storage.updateSubject(req.params.id, req.body);
     res.json(subject);
   });
 
-  app.delete("/api/subjects/:id", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.delete("/api/subjects/:id", isStaff, async (req, res) => {
     await storage.deleteSubject(req.params.id);
     res.sendStatus(204);
   });
@@ -271,8 +276,7 @@ export async function registerRoutes(
   });
 
   // Admin Routes
-  app.get("/api/admin/students", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.get("/api/admin/students", isStaff, async (req, res) => {
 
     const limit = parseInt(req.query.limit as string) || 50;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -292,8 +296,7 @@ export async function registerRoutes(
     });
   });
 
-  app.post("/api/admin/notify", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.post("/api/admin/notify", isStaff, async (req, res) => {
     
     try {
       const { studentId, courseCode, message, type, subject } = req.body;
@@ -337,31 +340,36 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/students/:id", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.patch("/api/admin/students/:id", isStaff, async (req, res) => {
     try {
       const student = await storage.updateStudent(req.params.id, req.body);
+      
+      // Notify the specific student in real-time so their dashboard refreshes
+      if (student && student.id) {
+        sendRealTimeMessage(student.id, {
+          type: "profile-updated",
+          studentId: student.studentId || null,
+        });
+      }
+      
       res.json(student);
     } catch (err) {
       res.status(500).send("Internal Server Error");
     }
   });
 
-  app.get("/api/admin/enrollments", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.get("/api/admin/enrollments", isStaff, async (req, res) => {
     const all = await storage.getAllDetailedEnrollments();
     res.json(all);
   });
 
-  app.get("/api/admin/enrollments/pending", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.get("/api/admin/enrollments/pending", isStaff, async (req, res) => {
     const all = await storage.getAllDetailedEnrollments();
     const pending = all.filter(item => item.enrollment.status === "pending");
     res.json(pending);
   });
 
-  app.get("/api/admin/stats", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.get("/api/admin/stats", isStaff, async (req, res) => {
 
     try {
       const [totalStudents, enrollments, coursesList, enrollmentByCourse] = await Promise.all([
@@ -386,8 +394,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/enrollments/:id/status", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.patch("/api/admin/enrollments/:id/status", isStaff, async (req, res) => {
     const { status, studentId, section, yearLevel } = req.body;
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).send("Invalid status");
@@ -400,6 +407,16 @@ export async function registerRoutes(
         section,
         yearLevel ? parseInt(yearLevel.toString(), 10) : undefined
       );
+
+      // Notify the specific student in real-time so their dashboard refreshes
+      if (enrollment && enrollment.studentId) {
+        sendRealTimeMessage(enrollment.studentId, {
+          type: "profile-updated",
+          status,
+          studentId: studentId || null,
+        });
+      }
+
       res.json(enrollment);
     } catch (err) {
       res.status(500).send("Internal Server Error");
@@ -417,25 +434,38 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/settings", async (req, res) => {
-    if (!req.isAuthenticated() || (req.user as any).role !== "admin") return res.sendStatus(403);
+  app.post("/api/settings", isAdmin, async (req, res) => {
     try {
-      const updated = await storage.updateSystemSettings(req.body);
+      // Filter out null or undefined values from req.body to prevent DB constraint errors
+      const cleanData: any = {};
+      Object.keys(req.body).forEach(key => {
+        if (req.body[key] !== null && req.body[key] !== undefined && req.body[key] !== "") {
+          cleanData[key] = req.body[key];
+        }
+      });
+
+      const updated = await storage.updateSystemSettings(cleanData);
       
       // Sync to .env if relevant fields are present
       const envUpdates: Record<string, string> = {};
-      if (req.body.sendgridApiKey) envUpdates["SENDGRID_API_KEY"] = req.body.sendgridApiKey;
-      if (req.body.sendgridFromEmail) envUpdates["SENDGRID_FROM_EMAIL"] = req.body.sendgridFromEmail;
-      if (req.body.twilioSid) envUpdates["TWILIO_SID"] = req.body.twilioSid;
-      if (req.body.twilioAuth) envUpdates["TWILIO_AUTH"] = req.body.twilioAuth;
-      if (req.body.twilioPhone) envUpdates["TWILIO_PHONE"] = req.body.twilioPhone;
+      if (cleanData.sendgridApiKey) envUpdates["SENDGRID_API_KEY"] = cleanData.sendgridApiKey;
+      if (cleanData.sendgridFromEmail) envUpdates["SENDGRID_FROM_EMAIL"] = cleanData.sendgridFromEmail;
+      if (cleanData.twilioSid) envUpdates["TWILIO_SID"] = cleanData.twilioSid;
+      if (cleanData.twilioAuth) envUpdates["TWILIO_AUTH"] = cleanData.twilioAuth;
+      if (cleanData.twilioPhone) envUpdates["TWILIO_PHONE"] = cleanData.twilioPhone;
       
       if (Object.keys(envUpdates).length > 0) {
         syncToEnv(envUpdates);
       }
+
+      // Broadcast changes to all clients so dashboards refresh immediately
+      broadcastToStudents({
+        type: "settings-updated",
+        settings: updated
+      });
       
       // Auto-broadcast if enrollment is opened
-      if (req.body.enrollmentStatus === "open") {
+      if (cleanData.enrollmentStatus === "open") {
         broadcastToStudents("Enrollment is now open!");
       }
       
@@ -443,6 +473,53 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Settings error:", err);
       res.status(500).json({ message: "Internal Server Error" });
+    }
+  });
+
+  // Officer Management
+  app.get("/api/admin/officers", isAdmin, async (_req, res) => {
+    try {
+      const officers = await storage.getOfficers();
+      res.json(officers);
+    } catch (err) {
+      res.status(500).send("Internal Server Error");
+    }
+  });
+
+  app.post("/api/admin/officers", isAdmin, async (req, res) => {
+    try {
+      const parsed = insertUserSchema.parse({
+        ...req.body,
+        role: "officer",
+      });
+
+      const existingUser = await storage.getUserByUsername(parsed.username);
+      if (existingUser) {
+        return res.status(400).send("Username already exists");
+      }
+
+      const hashedPassword = await hashPassword(parsed.password);
+      const user = await storage.createUser({
+        ...parsed,
+        password: hashedPassword,
+      });
+
+      res.status(201).json(user);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        res.status(400).json(err);
+      } else {
+        res.status(500).send("Internal Server Error");
+      }
+    }
+  });
+
+  app.delete("/api/admin/officers/:id", isAdmin, async (req, res) => {
+    try {
+      await storage.deleteUser(req.params.id);
+      res.sendStatus(204);
+    } catch (err) {
+      res.status(500).send("Internal Server Error");
     }
   });
 

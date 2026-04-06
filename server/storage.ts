@@ -16,6 +16,8 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUserPassword(id: string, hashedPassword: string): Promise<void>;
   updateUserUsername(id: string, username: string): Promise<User>;
+  getOfficers(): Promise<User[]>;
+  deleteUser(id: string): Promise<void>;
   
   // Student operations
   getStudent(id: string): Promise<Student | undefined>;
@@ -47,7 +49,7 @@ export interface IStorage {
   getNotificationsByStudent(studentId: string): Promise<Notification[]>;
 
   // Dashboard Stats
-  getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number }[]>;
+  getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number; male: number; female: number }[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -87,6 +89,17 @@ export class DatabaseStorage implements IStorage {
   async updateUserUsername(id: string, username: string): Promise<User> {
     const [user] = await db.update(users).set({ username }).where(eq(users.id, id)).returning();
     return user;
+  }
+  
+  async getOfficers(): Promise<User[]> {
+    return db.select().from(users).where(eq(users.role, "officer"));
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // Delete student record if it exists (cascade or manually)
+    // To be safe, we'll just delete the user, and if there's a student record, 
+    // it should be linked. Let's check schema.
+    await db.delete(users).where(eq(users.id, id));
   }
 
   async getStudent(id: string): Promise<Student | undefined> {
@@ -354,12 +367,14 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(notifications).where(eq(notifications.studentId, studentId));
   }
 
-  async getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number }[]> {
+  async getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number; male: number; female: number }[]> {
     const results = await db
       .select({
         course: courses.code,
         name: courses.name,
         count: sql<number>`cast(count(${students.id}) as int)`,
+        male: sql<number>`cast(sum(case when trim(lower(${students.gender})) = 'male' then 1 else 0 end) as int)`,
+        female: sql<number>`cast(sum(case when trim(lower(${students.gender})) = 'female' then 1 else 0 end) as int)`,
       })
       .from(courses)
       .leftJoin(students, eq(courses.id, students.courseId))

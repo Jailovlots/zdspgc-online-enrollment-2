@@ -1,7 +1,7 @@
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, FileCheck, BookOpen, AlertCircle, RefreshCw, Loader2 } from "lucide-react";
+import { Users, FileCheck, BookOpen, AlertCircle, RefreshCw, Loader2, Download } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -27,6 +27,33 @@ export default function AdminDashboard() {
     name: item.course,
     total: item.count || 0
   })) || [];
+  
+  const handleExportCSV = () => {
+    if (!stats?.enrollmentByCourse) return;
+    
+    const headers = ["Course Code", "Program Name", "Total Enrolled", "Male", "Female", "Other"];
+    const csvRows = [
+      headers.join(","),
+      ...stats.enrollmentByCourse.map((item: any) => [
+        `"${item.course}"`,
+        `"${item.name}"`,
+        item.count,
+        item.male,
+        item.female,
+        item.other
+      ].join(","))
+    ];
+    
+    const csvContent = csvRows.join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `enrollment_report_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   return (
     <AdminLayout>
@@ -136,16 +163,28 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle>Program Distribution Report</CardTitle>
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-2"
-              onClick={() => refetchStats()}
-              disabled={statsLoading}
-            >
-              {statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
-              Refresh
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2 bg-slate-50 hover:bg-slate-100"
+                onClick={handleExportCSV}
+                disabled={statsLoading || !stats?.enrollmentByCourse?.length}
+              >
+                <Download className="h-4 w-4" />
+                Export CSV Report
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-2"
+                onClick={() => refetchStats()}
+                disabled={statsLoading}
+              >
+                {statsLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                Refresh
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="rounded-md border">
@@ -154,7 +193,9 @@ export default function AdminDashboard() {
                   <tr className="border-b bg-muted/50 transition-colors">
                     <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Course Code</th>
                     <th className="h-10 px-4 text-left align-middle font-medium text-muted-foreground">Program Name</th>
-                    <th className="h-10 px-4 text-center align-middle font-medium text-muted-foreground">Total Students</th>
+                    <th className="h-10 px-4 text-center align-middle font-medium text-muted-foreground">Male</th>
+                    <th className="h-10 px-4 text-center align-middle font-medium text-muted-foreground">Female</th>
+                    <th className="h-10 px-4 text-center align-middle font-medium text-muted-foreground">Total</th>
                     <th className="h-10 px-4 text-right align-middle font-medium text-muted-foreground">Action</th>
                   </tr>
                 </thead>
@@ -170,9 +211,11 @@ export default function AdminDashboard() {
                     <tr key={i} className="border-b transition-colors hover:bg-muted/50">
                       <td className="p-4 align-middle font-semibold">{item.course}</td>
                       <td className="p-4 align-middle">{item.name}</td>
+                      <td className="p-4 align-middle text-center text-blue-600 font-medium">{item.male ?? 0}</td>
+                      <td className="p-4 align-middle text-center text-pink-600 font-medium">{item.female ?? 0}</td>
                       <td className="p-4 align-middle text-center">
-                        <Badge variant="secondary" className="px-3 font-bold">
-                          {item.count}
+                        <Badge variant="secondary" className="px-3 font-bold bg-slate-100">
+                          {item.count ?? 0}
                         </Badge>
                       </td>
                       <td className="p-4 align-middle text-right">
@@ -186,7 +229,7 @@ export default function AdminDashboard() {
                   ))}
                   {!statsLoading && (!stats?.enrollmentByCourse || stats.enrollmentByCourse.length === 0) && (
                     <tr>
-                      <td colSpan={4} className="p-8 text-center text-muted-foreground italic">
+                      <td colSpan={6} className="p-8 text-center text-muted-foreground italic">
                         No courses registered in the system.
                       </td>
                     </tr>

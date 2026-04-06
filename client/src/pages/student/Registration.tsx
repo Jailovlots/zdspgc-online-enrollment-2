@@ -68,9 +68,43 @@ export default function StudentRegistration() {
 
   const [uploadingField, setUploadingField] = useState<string | null>(null);
 
+  const { data: settings } = useQuery<SystemSettings>({
+    queryKey: ["/api/settings"],
+  });
+
   const { data: courses } = useQuery<Course[]>({
     queryKey: ["/api/courses"],
   });
+
+  const { data: profile } = useQuery<any>({
+    queryKey: ["/api/student/profile"],
+  });
+
+  const isReturningStudent = !!profile?.student?.studentId;
+
+  useEffect(() => {
+    if (profile?.student) {
+      const s = profile.student;
+      setFormData(prev => ({
+        ...prev,
+        ...s,
+        firstName: s.firstName || prev.firstName,
+        lastName: s.lastName || prev.lastName,
+        yearLevel: s.yearLevel?.toString() || prev.yearLevel,
+      }));
+      if (s.courseId) setSelectedCourseId(s.courseId);
+    }
+  }, [profile]);
+
+  useEffect(() => {
+    if (settings) {
+      setFormData(prev => ({
+        ...prev,
+        academicYear: settings.currentAcademicYear,
+        semester: settings.currentSemester,
+      }));
+    }
+  }, [settings]);
 
   const { data: subjects } = useQuery<Subject[]>({
     queryKey: ["/api/courses", selectedCourseId, "subjects"],
@@ -183,6 +217,8 @@ export default function StudentRegistration() {
     }
     
     if (currentStep === 3) {
+      if (isReturningStudent) return true;
+      
       const requiredDocs = ["diplomaUrl", "form138Url", "goodMoralUrl", "psaUrl"];
       for (const doc of requiredDocs) {
         if (!formData[doc as keyof typeof formData]) {
@@ -242,7 +278,7 @@ export default function StudentRegistration() {
             <p className="text-muted-foreground">Please fill out the form carefully using standard information.</p>
           </div>
           <div className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-semibold">
-            A.Y. 2026-2027 | 1st Semester
+            A.Y. {settings?.currentAcademicYear || "2026-2027"} | {settings?.currentSemester || "1st Semester"}
           </div>
         </div>
 
@@ -256,12 +292,12 @@ export default function StudentRegistration() {
                   step > i ? "bg-green-600 text-white" : "bg-slate-200 text-slate-500"
                 }`}
               >
-                {step > i ? <Check className="h-5 w-5" /> : i}
+                {step > i || (i === 3 && isReturningStudent) ? <Check className="h-5 w-5" /> : i}
               </div>
               <div className="mx-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
                 {i === 1 && "Personal Info"}
                 {i === 2 && "Program & Subjects"}
-                {i === 3 && "Documents"}
+                {i === 3 && (isReturningStudent ? "Documents" : "Documents")}
                 {i === 4 && "Finalize"}
               </div>
               {i < 4 && (
@@ -317,7 +353,7 @@ export default function StudentRegistration() {
                       {/* Form Title Banner */}
                       <div className="bg-primary px-5 py-3">
                         <p className="text-white font-bold uppercase tracking-widest text-sm">Enrollment Application Form</p>
-                        <p className="text-primary-foreground/70 text-xs mt-0.5">A.Y. 2026-2027 • Please write in BLOCK LETTERS</p>
+                        <p className="text-primary-foreground/70 text-xs mt-0.5">A.Y. {settings?.currentAcademicYear || "2026-2027"} • Please write in BLOCK LETTERS</p>
                       </div>
                       <div className="px-5 py-4 space-y-1">
                         <p className="text-xs text-muted-foreground">
@@ -756,9 +792,24 @@ export default function StudentRegistration() {
             <>
               <CardHeader className="border-b bg-slate-50/50">
                 <CardTitle className="text-2xl font-serif">III. Document Requirements</CardTitle>
-                <CardDescription>Upload clear scanned copies or photos of your documentary requirements.</CardDescription>
+                <CardDescription>
+                  {isReturningStudent 
+                    ? "Your previously submitted documents are already on file from your previous enrollment." 
+                    : "Upload clear scanned copies or photos of your documentary requirements."}
+                </CardDescription>
               </CardHeader>
               <CardContent className="p-8 space-y-8">
+                {isReturningStudent && (
+                  <div className="bg-green-50 border border-green-200 p-6 rounded-xl flex items-center gap-4 mb-6">
+                    <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center text-green-600 shrink-0">
+                      <Check className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-green-900">Documents Previously Verified</h4>
+                      <p className="text-sm text-green-800/80">You do not need to re-upload your diploma, report card, or other records. You may still update them below if you have new versions.</p>
+                    </div>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Diploma */}
                   <div className="border-2 border-dashed border-slate-200 rounded-xl p-6 hover:border-primary/50 transition-colors bg-slate-50/50">
@@ -908,7 +959,9 @@ export default function StudentRegistration() {
                     <div className="text-slate-600">Total Subjects:</div>
                     <div className="font-bold">{enrolledSubjectIds.length}</div>
                     <div className="text-slate-600">Documents attached:</div>
-                    <div className="font-bold text-green-600">{(formData.diplomaUrl && formData.form138Url && formData.goodMoralUrl && formData.psaUrl) ? "All Complete" : "Partial"}</div>
+                    <div className="font-bold text-green-600">
+                      {isReturningStudent ? "Previously Verified" : (formData.diplomaUrl && formData.form138Url && formData.goodMoralUrl && formData.psaUrl) ? "All Complete" : "Partial"}
+                    </div>
                   </div>
                 </div>
 

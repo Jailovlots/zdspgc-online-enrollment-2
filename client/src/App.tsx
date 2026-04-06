@@ -44,12 +44,12 @@ function Router() {
       <ProtectedRoute path="/student/settings" component={StudentSettings} role="student" />
 
       {/* Admin Routes */}
-      <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} role="admin" />
-      <ProtectedRoute path="/admin/students" component={StudentList} role="admin" />
-      <ProtectedRoute path="/admin/enrollments" component={AdminEnrollments} role="admin" />
-      <ProtectedRoute path="/admin/courses" component={AdminCourses} role="admin" />
+      <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} role={["admin", "officer"]} />
+      <ProtectedRoute path="/admin/students" component={StudentList} role={["admin", "officer"]} />
+      <ProtectedRoute path="/admin/enrollments" component={AdminEnrollments} role={["admin", "officer"]} />
+      <ProtectedRoute path="/admin/courses" component={AdminCourses} role={["admin", "officer"]} />
       <ProtectedRoute path="/admin/settings" component={AdminSettings} role="admin" />
-      <ProtectedRoute path="/admin/profile" component={AdminProfile} role="admin" />
+      <ProtectedRoute path="/admin/profile" component={AdminProfile} role={["admin", "officer"]} />
 
       {/* Fallback to 404 */}
       <Route component={NotFound} />

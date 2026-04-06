@@ -96,6 +96,27 @@ export default function StudentList() {
     },
   });
 
+  const handleQuickAction = async (studentId: string, status: string) => {
+    try {
+      const res = await fetch(`/api/admin/students/${studentId}/latest-enrollment`);
+      if (!res.ok) {
+        throw new Error("No pending enrollment found for this student.");
+      }
+      const data = await res.json();
+      updateStatusMutation.mutate({ 
+        studentId, 
+        enrollmentId: data.enrollment.id, 
+        status 
+      });
+    } catch (error: any) {
+      toast({
+        title: "Action failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   const filteredStudents = (students as any[])?.filter((student: any) =>
     (student.status === "approved" || student.status === "enrolled") &&
     (student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -116,7 +137,7 @@ export default function StudentList() {
               toast({ title: "No data", description: "No approved students found.", variant: "destructive" });
               return;
             }
-            const headers = ["Student ID", "Student Name", "Course", "Year Level", "Section", "Status"];
+            const headers = ["Student ID", "Student Name", "Gender", "Course", "Year Level", "Section", "Status"];
             const csvRows = [
               headers.join(","),
               ...filteredStudents.map((s: any) => {
@@ -132,6 +153,7 @@ export default function StudentList() {
                 return [
                   `"${s.studentId || ""}"`, 
                   `"${name}"`, 
+                  `"${s.gender || "N/A"}"`,
                   `"${s.course || "N/A"}"`, 
                   `"${yearLevel}"`, 
                   `"${s.section || "NOT SET"}"`,
@@ -274,16 +296,19 @@ export default function StudentList() {
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem
                                   className="text-green-600"
-                                  onClick={() => {
-                                    // For simplicity in this demo, we assume the student has an enrollment ID
-                                    // In a real app, we'd fetch the enrollment details first or have it in the student object
-                                    toast({ title: "Verification needed", description: "Use the Review button on dashboard for full approval flow." });
-                                  }}
+                                  onClick={() => handleQuickAction(student.id, "approved")}
+                                  disabled={updateStatusMutation.isPending}
                                 >
-                                  <Check className="mr-2 h-4 w-4" /> Approve
+                                  {updateStatusMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Check className="mr-2 h-4 w-4" />}
+                                  Approve
                                 </DropdownMenuItem>
-                                <DropdownMenuItem className="text-red-600">
-                                  <X className="mr-2 h-4 w-4" /> Reject
+                                <DropdownMenuItem 
+                                  className="text-red-600"
+                                  onClick={() => handleQuickAction(student.id, "rejected")}
+                                  disabled={updateStatusMutation.isPending}
+                                >
+                                  {updateStatusMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <X className="mr-2 h-4 w-4" />}
+                                  Reject
                                 </DropdownMenuItem>
                               </>
                             )}
@@ -721,15 +746,15 @@ function PrintableRecord({ selectedStudent }: { selectedStudent: any }) {
         </div>
 
         {/* Banner */}
-        <div className="flex-1 bg-[#1a734d] text-white p-3 rounded-sm shadow-sm border border-[#145639] flex flex-col justify-center">
+        <div className="flex-1 bg-[#1a734d] text-white p-3 rounded-sm shadow-sm border border-[#145639] flex flex-col justify-center text-left">
           <h2 className="text-lg font-bold uppercase tracking-wide drop-shadow-sm leading-tight m-0">Enrollment Application Form</h2>
-          <p className="text-[10px] text-green-100 mb-2">A.Y. {selectedStudent?.academicYear || "2026-2027"} • Please write in BLOCK LETTERS</p>
+          <p className="text-[10px] text-green-100 mb-2">A.Y. {selectedStudent?.academicYear || "Updating..."} • Please write in BLOCK LETTERS</p>
           <div className="bg-white/95 p-2 rounded-sm text-slate-800 shadow-inner">
-            <p className="text-[9px] font-bold text-[#1a734d] mb-1">
+            <p className="text-[9px] font-bold text-[#1a734d] mb-1 text-left">
               <span className="text-red-500 mr-1">*</span> Indicates required field. Write N/A if not applicable.
             </p>
-            <h3 className="text-sm font-serif font-bold text-slate-800 m-0">I. Student Personal Information</h3>
-            <p className="text-[9px] text-slate-500 m-0">Complete all sections accurately. Falsification of information may result in disqualification.</p>
+            <h3 className="text-sm font-serif font-bold text-slate-800 m-0 text-left">I. Student Personal Information</h3>
+            <p className="text-[9px] text-slate-500 m-0 text-left">Complete all sections accurately. Falsification of information may result in disqualification.</p>
           </div>
         </div>
       </div>

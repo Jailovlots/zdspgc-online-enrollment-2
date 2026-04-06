@@ -26,11 +26,9 @@ export async function initSocket(httpServer: HttpServer) {
         url: process.env.REDIS_URL,
         socket: isTLS ? { 
           tls: true,
-          // Upstash certificates are usually globally trusted, but rejectUnauthorized: false 
-          // can help in dev environments if there are intermediate cert issues
           rejectUnauthorized: false 
         } : undefined
-      };
+      } as any;
 
       const pubClient = createClient(clientOptions);
       const subClient = pubClient.duplicate();

@@ -30,7 +30,7 @@ export const subjects = pgTable("subjects", {
 });
 
 export const students = pgTable("students", {
-  id: varchar("id").primaryKey().references(() => users.id),
+  id: varchar("id").primaryKey().notNull().references(() => users.id),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   middleName: text("middle_name"),
@@ -79,7 +79,7 @@ export const students = pgTable("students", {
 });
 
 export const enrollments = pgTable("enrollments", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  id: varchar("id").primaryKey().notNull().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").references(() => students.id),
   academicYear: text("academic_year").notNull(),
   semester: text("semester").notNull(),
@@ -89,14 +89,14 @@ export const enrollments = pgTable("enrollments", {
 });
 
 export const enrollmentSubjects = pgTable("enrollment_subjects", {
-  enrollmentId: varchar("enrollment_id").references(() => enrollments.id),
-  subjectId: varchar("subject_id").references(() => subjects.id),
+  enrollmentId: varchar("enrollment_id").notNull().references(() => enrollments.id),
+  subjectId: varchar("subject_id").notNull().references(() => subjects.id),
 }, (t) => ({
   pk: primaryKey({ columns: [t.enrollmentId, t.subjectId] }),
 }));
 
 export const systemSettings = pgTable("system_settings", {
-  id: integer("id").primaryKey().default(1),
+  id: integer("id").primaryKey().notNull().default(1),
   schoolName: text("school_name").notNull().default("ZDSPGC"),
   contactEmail: text("contact_email").notNull().default("info@zdspgc.edu.ph"),
   contactNumber: text("contact_number").notNull().default("+63 912 345 6789"),
@@ -113,7 +113,7 @@ export const systemSettings = pgTable("system_settings", {
 
 // Session table for connect-pg-simple
 export const sessions = pgTable("session", {
-    sid: varchar("sid").primaryKey(),
+    sid: varchar("sid").primaryKey().notNull(),
     sess: text("sess").notNull(),
     expire: timestamp("expire").notNull(),
 });

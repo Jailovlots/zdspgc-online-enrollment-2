@@ -8,6 +8,8 @@ import { AlertCircle, CheckCircle2, Clock, FileText, ArrowRight } from "lucide-r
 import { Link } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
+import { useSocketEvent, useJoinUserRoom } from "@/hooks/use-socket";
 import { Student, Enrollment, SystemSettings } from "@shared/schema";
 
 export default function StudentDashboard() {
@@ -15,14 +17,33 @@ export default function StudentDashboard() {
   
   const { data: profile } = useQuery<any>({
     queryKey: ["/api/student/profile"],
+    staleTime: 0,              // always re-validate on focus
+    refetchInterval: 30_000,   // poll every 30s as a fallback
   });
 
   const { data: enrollment } = useQuery<any>({
     queryKey: ["/api/student/enrollment"],
+    staleTime: 0,
+    refetchInterval: 30_000,
   });
 
   const { data: settings } = useQuery<SystemSettings>({
     queryKey: ["/api/settings"],
+  });
+
+  // Join personal socket room so server can send targeted messages
+  useJoinUserRoom(user?.id);
+
+  // Listen for real-time events pushed by the server
+  useSocketEvent("announcement", (data) => {
+    if (data?.type === "profile-updated") {
+      queryClient.invalidateQueries({ queryKey: ["/api/student/profile"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/student/enrollment"] });
+    }
+    
+    if (data?.type === "settings-updated") {
+      queryClient.invalidateQueries({ queryKey: ["/api/settings"] });
+    }
   });
 
   const student = profile?.student;
@@ -137,7 +158,7 @@ export default function StudentDashboard() {
               </Link>
               <Link href="/student/registration">
                 <Button variant="outline" className="w-full justify-between bg-transparent text-white border-slate-700 hover:bg-slate-800 hover:text-white group">
-                  Enrollment History
+                  {enrollment ? "Registration Status" : "View History"}
                   <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </Link>

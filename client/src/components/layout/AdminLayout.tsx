@@ -82,15 +82,17 @@ export function AdminLayout({ children }: AdminLayoutProps) {
 
           <div className="text-xs font-semibold text-slate-500 mt-6 mb-2 px-2 uppercase tracking-wider">System</div>
 
-          <Link href="/admin/settings">
-            <Button
-              variant="ghost"
-              className={`w-full justify-start gap-3 ${isActive("/admin/settings") ? "bg-primary text-white hover:bg-primary/90 hover:text-white" : "hover:bg-slate-800 hover:text-white"}`}
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          </Link>
+          {user?.role === "admin" && (
+            <Link href="/admin/settings">
+              <Button
+                variant="ghost"
+                className={`w-full justify-start gap-3 ${isActive("/admin/settings") ? "bg-primary text-white hover:bg-primary/90 hover:text-white" : "hover:bg-slate-800 hover:text-white"}`}
+              >
+                <Settings className="h-4 w-4" />
+                Settings
+              </Button>
+            </Link>
+          )}
         </div>
 
         <div className="p-4 border-t border-slate-800 bg-slate-950">

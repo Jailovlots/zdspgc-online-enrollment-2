@@ -26,7 +26,7 @@ export default function StudentSettings() {
 
   const changePasswordMutation = useMutation({
     mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
-      const res = await apiRequest("POST", "/api/user/change-password", data);
+      const res = await apiRequest("POST", "/api/user/update-profile", data);
       if (!res.ok) {
         const body = await res.text();
         throw new Error(body || "Password change failed");

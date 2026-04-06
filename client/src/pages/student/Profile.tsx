@@ -10,6 +10,7 @@ import { Loader2, Upload, Check, User, Phone, MapPin, School, BookOpen } from "l
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
+import { useSocketEvent, useJoinUserRoom } from "@/hooks/use-socket";
 
 export default function StudentProfile() {
   const { toast } = useToast();
@@ -17,6 +18,17 @@ export default function StudentProfile() {
   
   const { data: profile, isLoading } = useQuery<any>({
     queryKey: ["/api/student/profile"],
+  });
+
+  // Join personal socket room so server can send targeted messages
+  useJoinUserRoom(user?.id);
+
+  // Listen for real-time 'profile-updated' events pushed by the server
+  // when an admin approves/rejects the enrollment and assigns a Student ID.
+  useSocketEvent("announcement", (data) => {
+    if (data?.type === "profile-updated") {
+      queryClient.invalidateQueries({ queryKey: ["/api/student/profile"] });
+    }
   });
 
   const [formData, setFormData] = useState({

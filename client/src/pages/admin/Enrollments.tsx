@@ -43,7 +43,7 @@ export default function AdminEnrollments() {
       return;
     }
 
-    const headers = ["Student Name", "Course", "Year Level", "Academic Period", "Status", "Email", "Mobile Number"];
+    const headers = ["Student Name", "Gender", "Course", "Year Level", "Academic Period", "Status", "Email", "Mobile Number"];
     const csvRows = [
       headers.join(","),
       ...dataToExport.map(e => {
@@ -52,7 +52,7 @@ export default function AdminEnrollments() {
         const year = e.enrollment?.yearLevel || s.yearLevel || "";
         const period = `${e.enrollment?.academicYear || ""} / ${e.enrollment?.semester || ""}`;
         return [
-          `"${name}"`, `"${e.course || ""}"`, `"${year}"`, `"${period}"`, `"${e.enrollment?.status || ""}"`,
+          `"${name}"`, `"${s.gender || "N/A"}"`, `"${e.course || ""}"`, `"${year}"`, `"${period}"`, `"${e.enrollment?.status || ""}"`,
           `"${s.email || ""}"`, `"${s.mobileNumber || ""}"`
         ].join(",");
       })
