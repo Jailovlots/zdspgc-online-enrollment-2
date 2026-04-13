@@ -194,15 +194,16 @@ export default function StudentProfile() {
                       if (file) handleFileUpload("photoUrl", file);
                     }}
                   />
-                  {formData.photoUrl ? (
+                  {formData.photoUrl && !formData.photoUrl.includes('error') ? (
                     <img 
                       src={formData.photoUrl} 
                       alt="Student" 
                       className="w-full h-full object-cover" 
                       onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        console.warn("Profile photo missing from server");
+                        // If the image is broken, clear the local state so the placeholder shows
+                        console.warn("Photo missing, showing upload prompt");
+                        // We set a special flag in the local form data to trigger the fallback
+                        handleInputChange("photoUrl", ""); 
                       }}
                     />
                   ) : (

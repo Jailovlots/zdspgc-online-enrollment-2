@@ -331,17 +331,14 @@ export default function StudentRegistration() {
                           if (file) handleFileUpload("photoUrl", file);
                         }}
                       />
-                      {formData.photoUrl ? (
+                      {formData.photoUrl && !formData.photoUrl.includes('error') ? (
                         <img 
                           src={formData.photoUrl} 
                           alt="Student" 
                           className="w-full h-full object-cover" 
                           onError={(e) => {
-                            // If the image is missing (e.g. after a redeploy), clear the URL so the placeholder shows
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            // Show a console warning but don't break the UI
-                            console.warn("Upload file missing - likely due to redeploy without persistent disk");
+                            console.warn("Photo missing from server, showing upload prompt");
+                            handleInputChange("photoUrl", ""); 
                           }}
                         />
                       ) : (
