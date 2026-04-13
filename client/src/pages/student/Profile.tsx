@@ -108,9 +108,10 @@ export default function StudentProfile() {
   });
 
   const handleInputChange = (field: string, value: string) => {
-    // Automatically capitalize all text inputs as requested in registration
-    const capitalizedValue = value.toUpperCase();
-    setFormData(prev => ({ ...prev, [field]: capitalizedValue }));
+    // Automatically capitalize text inputs, but SKIP for URLs (case-sensitive)
+    const isUrl = field.toLowerCase().includes("url");
+    const processedValue = isUrl ? value : value.toUpperCase();
+    setFormData(prev => ({ ...prev, [field]: processedValue }));
   };
 
   const handleFileUpload = async (field: string, file: File) => {
