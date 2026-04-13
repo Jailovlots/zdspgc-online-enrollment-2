@@ -108,8 +108,12 @@ export async function registerRoutes(
     next();
   };
 
-  // Static serving for uploads
-  app.use("/uploads", express.static(path.join(path.resolve(), "uploads")));
+  // Static serving for uploads using absolute project root
+  const uploadsPath = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsPath)) {
+    fs.mkdirSync(uploadsPath);
+  }
+  app.use("/uploads", express.static(uploadsPath));
 
   // File Upload Route
   app.post("/api/upload", upload.single("file"), (req, res) => {
