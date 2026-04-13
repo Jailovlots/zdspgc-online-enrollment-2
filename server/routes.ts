@@ -6,6 +6,8 @@ import { setupAuth, hashPassword } from "./auth";
 import { insertStudentSchema, insertEnrollmentSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
 import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import { CloudinaryStorage } from "multer-storage-cloudinary";
 import path from "path";
 import fs from "fs";
 import NodeCache from "node-cache";
@@ -15,24 +17,24 @@ import { broadcastToStudents, sendRealTimeMessage, broadcastToStaff } from "./li
 // Initialize Cache (node-cache)
 const myCache = new NodeCache({ stdTTL: 300 }); // 5 minutes default TTL
 
-// Ensure uploads directory exists
-if (!fs.existsSync("uploads")) {
-  fs.mkdirSync("uploads");
-}
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || "dnjy7glul",
+  api_key: process.env.CLOUDINARY_API_KEY || "417512989715619",
+  api_secret: process.env.CLOUDINARY_API_SECRET || "c5QGhpCKhpvgsFLDvo0nF7q9940",
+});
 
-const uploadStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname));
-  },
+const cloudStorage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: "enrollment_uploads",
+    allowed_formats: ["jpg", "png", "jpeg", "pdf"],
+  } as any,
 });
 
 const upload = multer({
-  storage: uploadStorage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  storage: cloudStorage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // Increase to 10MB since cloud handles it well
 });
 
 async function seedData() {
@@ -122,8 +124,8 @@ export async function registerRoutes(
     if (!req.file) {
       return res.status(400).send("No file uploaded.");
     }
-    const fileUrl = `/uploads/${req.file.filename}`;
-    res.json({ url: fileUrl });
+    // multer-storage-cloudinary provides the secure_url in req.file.path
+    res.json({ url: (req.file as any).path });
   });
 
   // Courses and Subjects

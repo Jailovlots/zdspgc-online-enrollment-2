@@ -441,7 +441,22 @@ export default function AdminEnrollments() {
                         onClick={() => doc.url && window.open(doc.url, "_blank")}
                       >
                         <div className={`h-10 w-10 rounded-full flex items-center justify-center mb-1 ${doc.url ? "bg-primary/5 group-hover:bg-primary/10" : "bg-slate-100"}`}>
-                          <doc.icon className={`h-5 w-5 ${doc.url ? "text-primary" : "text-slate-400"}`} />
+                          {doc.url && doc.label === "2x2 Photo" ? (
+                            <img 
+                              src={doc.url} 
+                              alt="" 
+                              className="h-full w-full rounded-full object-cover" 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).style.display = 'none';
+                                (e.target as HTMLImageElement).parentElement?.classList.add('flex', 'items-center', 'justify-center');
+                                const icon = document.createElement('div');
+                                icon.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user h-5 w-5 text-primary"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
+                                (e.target as HTMLImageElement).parentElement?.appendChild(icon.firstChild!);
+                              }}
+                            />
+                          ) : (
+                            <doc.icon className={`h-5 w-5 ${doc.url ? "text-primary" : "text-slate-400"}`} />
+                          )}
                         </div>
                         <p className="text-[10px] font-bold uppercase text-center text-slate-600">{doc.label}</p>
                         {doc.url ? (
