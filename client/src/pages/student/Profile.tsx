@@ -195,7 +195,16 @@ export default function StudentProfile() {
                     }}
                   />
                   {formData.photoUrl ? (
-                    <img src={formData.photoUrl} alt="Student" className="w-full h-full object-cover" />
+                    <img 
+                      src={formData.photoUrl} 
+                      alt="Student" 
+                      className="w-full h-full object-cover" 
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = 'none';
+                        console.warn("Profile photo missing from server");
+                      }}
+                    />
                   ) : (
                     <>
                       <User className="h-10 w-10 text-slate-300 group-hover:text-primary transition-colors" />

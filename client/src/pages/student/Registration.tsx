@@ -332,7 +332,18 @@ export default function StudentRegistration() {
                         }}
                       />
                       {formData.photoUrl ? (
-                        <img src={formData.photoUrl} alt="Student" className="w-full h-full object-cover" />
+                        <img 
+                          src={formData.photoUrl} 
+                          alt="Student" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            // If the image is missing (e.g. after a redeploy), clear the URL so the placeholder shows
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            // Show a console warning but don't break the UI
+                            console.warn("Upload file missing - likely due to redeploy without persistent disk");
+                          }}
+                        />
                       ) : (
                         <>
                           <User className="h-10 w-10 text-slate-300 group-hover:text-primary transition-colors" />
