@@ -16,6 +16,7 @@ import StudentRegistration from "@/pages/student/Registration";
 import StudentProfile from "@/pages/student/Profile";
 import StudentSettings from "@/pages/student/Settings";
 import StudentSchedule from "@/pages/student/Schedule";
+import StudentNotifications from "@/pages/student/Notifications";
 
 // Admin Pages
 import AdminDashboard from "@/pages/admin/Dashboard";
@@ -42,6 +43,7 @@ function Router() {
       <ProtectedRoute path="/student/grades" component={StudentDashboard} role="student" />
       <ProtectedRoute path="/student/profile" component={StudentProfile} role="student" />
       <ProtectedRoute path="/student/settings" component={StudentSettings} role="student" />
+      <ProtectedRoute path="/student/notifications" component={StudentNotifications} role="student" />
 
       {/* Admin Routes */}
       <ProtectedRoute path="/admin/dashboard" component={AdminDashboard} role={["admin", "officer"]} />

@@ -275,6 +275,37 @@ export async function registerRoutes(
     res.json(enrollment);
   });
 
+  // Student Notifications
+  app.get("/api/notifications", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const notifications = await storage.getNotificationsByStudent(req.user.id);
+    res.json(notifications);
+  });
+
+  app.get("/api/notifications/unread-count", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const count = await storage.getUnreadNotificationCount(req.user.id);
+    res.json({ count });
+  });
+
+  app.patch("/api/notifications/:id/read", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.markNotificationAsRead(req.params.id);
+    res.sendStatus(204);
+  });
+
+  app.patch("/api/notifications/read-all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.markAllNotificationsAsRead(req.user.id);
+    res.sendStatus(204);
+  });
+
+  app.delete("/api/notifications/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    await storage.deleteNotification(req.params.id);
+    res.sendStatus(204);
+  });
+
   // Admin Routes
   app.get("/api/admin/students", isStaff, async (req, res) => {
 
@@ -297,7 +328,7 @@ export async function registerRoutes(
   });
 
   app.post("/api/admin/notify", isStaff, async (req, res) => {
-    
+    console.log(`[NOTIFY] Payload:`, JSON.stringify(req.body));
     try {
       const { studentId, courseCode, message, type, subject } = req.body;
       
@@ -317,14 +348,15 @@ export async function registerRoutes(
         userId: student.id,
         toEmail: student.email || undefined,
         toPhone: student.mobileNumber || undefined,
-        subject: subject || "Notification from ZDSPGC Enrollment System",
+        subject: subject || "Notification",
         message
       });
       
       // Log the notification in the record
-      const status = (result.email || result.sms || result.realtime) ? "sent" : "failed";
+      const status = (result.email || result.sms || result.realtime || result.portal) ? "sent" : "failed";
       await storage.createNotification({
         studentId,
+        title: subject || "Notification",
         message,
         type,
         status

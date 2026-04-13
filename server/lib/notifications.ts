@@ -110,10 +110,10 @@ export async function sendRealTime({ userId, courseCode, message }: Notification
  * Orchestrates sending notifications based on the target type.
  */
 export async function notifyStudent(
-  type: 'email' | 'sms' | 'realtime' | 'both' | 'all',
+  type: 'email' | 'sms' | 'realtime' | 'portal' | 'both' | 'all',
   payload: NotificationPayload
-): Promise<{ email: boolean; sms: boolean; realtime: boolean }> {
-  const result = { email: false, sms: false, realtime: false };
+): Promise<{ email: boolean; sms: boolean; realtime: boolean; portal: boolean }> {
+  const result = { email: false, sms: false, realtime: false, portal: false };
 
   if (type === 'email' || type === 'both' || type === 'all') {
     result.email = await sendEmail(payload);
@@ -125,6 +125,10 @@ export async function notifyStudent(
 
   if (type === 'realtime' || type === 'all') {
     result.realtime = await sendRealTime(payload);
+  }
+
+  if (type === 'portal') {
+    result.portal = true; // Handled by saving to DB in routes.ts or here
   }
 
   return result;

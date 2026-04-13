@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, FileText, Check, ChevronRight, ChevronLeft, User, Phone, MapPin, School, BookOpen } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Course, Subject } from "@shared/schema";
+import { Course, Subject, SystemSettings } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";

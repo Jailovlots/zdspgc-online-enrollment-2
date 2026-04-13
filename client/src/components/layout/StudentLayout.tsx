@@ -7,10 +7,12 @@ import {
   FileText,
   LogOut,
   Settings,
-  User
+  User,
+  Bell
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
+import { NotificationBell } from "../NotificationBell";
 
 interface StudentLayoutProps {
   children: React.ReactNode;
@@ -59,6 +61,13 @@ export function StudentLayout({ children }: StudentLayoutProps) {
             </Button>
           </Link>
 
+          <Link href="/student/notifications">
+            <Button variant={isActive("/student/notifications") ? "secondary" : "ghost"} className="w-full justify-start gap-3">
+              <Bell className="h-4 w-4" />
+              Notifications
+            </Button>
+          </Link>
+
 
           <div className="text-xs font-semibold text-muted-foreground mt-6 mb-2 px-2 uppercase tracking-wider">Account</div>
 
@@ -101,6 +110,9 @@ export function StudentLayout({ children }: StudentLayoutProps) {
             <span className="text-sm font-medium text-slate-600 hidden md:inline-block">
               Welcome, {user?.username || "Student"}
             </span>
+            
+            <NotificationBell />
+
             <Avatar className="h-8 w-8 ring-2 ring-offset-2 ring-primary/20">
               <AvatarImage 
                 src={profile?.student?.photoUrl || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.username || "Juan"}`} 

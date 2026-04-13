@@ -121,8 +121,10 @@ export const sessions = pgTable("session", {
 export const notifications = pgTable("notifications", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   studentId: varchar("student_id").references(() => students.id).notNull(),
+  title: text("title"),
   message: text("message").notNull(),
-  type: text("type").notNull(), // 'email', 'sms', 'both'
+  type: text("type").notNull(), // 'email', 'sms', 'both', 'portal'
+  isRead: boolean("is_read").default(false).notNull(),
   status: text("status").notNull().default("sent"),
   sentAt: timestamp("sent_at").defaultNow().notNull(),
 });

@@ -666,11 +666,12 @@ export default function StudentList() {
                 <SelectValue placeholder="Select method" />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="portal">Portal (Student Account)</SelectItem>
                 <SelectItem value="email">Email (Gmail)</SelectItem>
                 <SelectItem value="sms">SMS (Phone)</SelectItem>
-                <SelectItem value="realtime">Real-time (In-App)</SelectItem>
+                <SelectItem value="realtime">Real-time (Transient)</SelectItem>
                 <SelectItem value="both">Both Email & SMS</SelectItem>
-                <SelectItem value="all">All (Email, SMS & In-App)</SelectItem>
+                <SelectItem value="all">All (Portal, Email, SMS)</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -679,7 +680,7 @@ export default function StudentList() {
             <Input
               id="subject"
               name="subject"
-              defaultValue="Notification from ZDSPGC Enrollment System"
+              defaultValue="Notification"
               placeholder="Enter subject"
             />
           </div>

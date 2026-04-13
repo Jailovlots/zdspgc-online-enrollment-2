@@ -47,6 +47,10 @@ export interface IStorage {
   // Notification operations
   createNotification(notification: InsertNotification): Promise<Notification>;
   getNotificationsByStudent(studentId: string): Promise<Notification[]>;
+  markNotificationAsRead(id: string): Promise<void>;
+  markAllNotificationsAsRead(studentId: string): Promise<void>;
+  getUnreadNotificationCount(studentId: string): Promise<number>;
+  deleteNotification(id: string): Promise<void>;
 
   // Dashboard Stats
   getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number; male: number; female: number }[]>;
@@ -364,7 +368,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getNotificationsByStudent(studentId: string): Promise<Notification[]> {
-    return db.select().from(notifications).where(eq(notifications.studentId, studentId));
+    return db
+      .select()
+      .from(notifications)
+      .where(eq(notifications.studentId, studentId))
+      .orderBy(sql`${notifications.sentAt} DESC`);
+  }
+
+  async markNotificationAsRead(id: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.id, id));
+  }
+
+  async markAllNotificationsAsRead(studentId: string): Promise<void> {
+    await db
+      .update(notifications)
+      .set({ isRead: true })
+      .where(eq(notifications.studentId, studentId));
+  }
+
+  async getUnreadNotificationCount(studentId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`cast(count(*) as int)` })
+      .from(notifications)
+      .where(and(eq(notifications.studentId, studentId), eq(notifications.isRead, false)));
+    return result.count;
+  }
+
+  async deleteNotification(id: string): Promise<void> {
+    await db.delete(notifications).where(eq(notifications.id, id));
   }
 
   async getEnrollmentCountsByCourse(): Promise<{ course: string; name: string; count: number; male: number; female: number }[]> {
