@@ -10,7 +10,7 @@ import path from "path";
 import fs from "fs";
 import NodeCache from "node-cache";
 import { notifyStudent } from "./lib/notifications";
-import { broadcastToStudents, sendRealTimeMessage } from "./lib/socket";
+import { broadcastToStudents, sendRealTimeMessage, broadcastToStaff } from "./lib/socket";
 
 // Initialize Cache (node-cache)
 const myCache = new NodeCache({ stdTTL: 300 }); // 5 minutes default TTL
@@ -262,6 +262,14 @@ export async function registerRoutes(
       }
 
       const enrollment = await storage.createEnrollment(req.user.id, { academicYear, semester, yearLevel }, subjectIds);
+      
+      // Notify staff/admin of new enrollment
+      broadcastToStaff({
+        type: "new-enrollment",
+        studentName: `${req.user.username}`,
+        message: `New enrollment application submitted by ${req.user.username}`
+      });
+
       res.status(201).json(enrollment);
     } catch (err: any) {
       console.error("Enrollment error:", err);
@@ -426,7 +434,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/admin/enrollments/:id/status", isStaff, async (req, res) => {
+  app.patch("/api/admin/enrollments/:id/status", isAdmin, async (req, res) => {
     const { status, studentId, section, yearLevel } = req.body;
     if (!["approved", "rejected"].includes(status)) {
       return res.status(400).send("Invalid status");

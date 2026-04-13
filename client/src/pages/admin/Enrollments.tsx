@@ -7,6 +7,7 @@ import { Check, X, Loader2, FileText, Eye, User, Users, MapPin, Phone, Mail, Boo
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/use-auth";
 import { useState } from "react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -21,6 +22,7 @@ export default function AdminEnrollments() {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [assignStudentId, setAssignStudentId] = useState("");
   const [assignSection, setAssignSection] = useState("");
+  const { user } = useAuth();
 
   const { data: enrollments, isLoading } = useQuery<any[]>({
     queryKey: ["/api/admin/enrollments"],
@@ -179,19 +181,19 @@ export default function AdminEnrollments() {
                           </TableCell>
                           <TableCell>{getStatusBadge(item.enrollment.status)}</TableCell>
                           <TableCell className="text-right">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              className="h-8 gap-1.5"
-                              onClick={() => {
-                                setSelectedEnrollment(item);
-                                setAssignStudentId(item.student.studentId || "");
-                                setAssignSection(item.student.section || "");
-                                setIsDetailOpen(true);
-                              }}
-                            >
-                              <Eye className="h-4 w-4" /> Review
-                            </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="h-8 gap-1.5"
+                                onClick={() => {
+                                  setSelectedEnrollment(item);
+                                  setAssignStudentId(item.student.studentId || "");
+                                  setAssignSection(item.student.section || "");
+                                  setIsDetailOpen(true);
+                                }}
+                              >
+                                <Eye className="h-4 w-4" /> {user?.role === "admin" ? "Review" : "Review Details"}
+                              </Button>
                           </TableCell>
                         </TableRow>
                       ))
@@ -458,7 +460,7 @@ export default function AdminEnrollments() {
           <DialogFooter className="p-6 border-t bg-slate-50 sticky bottom-0 z-10">
             <div className="flex w-full justify-between items-center">
               <Button variant="ghost" onClick={() => setIsDetailOpen(false)}>Close</Button>
-              {selectedEnrollment?.enrollment.status === "pending" && (
+              {selectedEnrollment?.enrollment.status === "pending" && user?.role === "admin" && (
                 <div className="flex flex-col md:flex-row gap-4 flex-1 justify-end items-center">
                   <div className="flex gap-4 w-full md:w-auto">
                     <div className="space-y-1">
@@ -507,6 +509,13 @@ export default function AdminEnrollments() {
                       <Check className="h-3 w-3 mr-1" /> Approve & Enroll
                     </Button>
                   </div>
+                </div>
+              )}
+              {selectedEnrollment?.enrollment.status === "pending" && user?.role !== "admin" && (
+                <div className="flex-1 flex justify-end">
+                   <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 py-1 px-3">
+                     Review Complete - Pending Admin Approval
+                   </Badge>
                 </div>
               )}
             </div>

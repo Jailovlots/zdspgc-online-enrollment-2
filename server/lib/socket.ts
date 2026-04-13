@@ -20,29 +20,52 @@ export async function initSocket(httpServer: HttpServer) {
       
       // Upstash and some other providers often require TLS
       // We check for rediss:// or if the host looks like Upstash
-      const isTLS = process.env.REDIS_URL.startsWith("rediss://") || process.env.REDIS_URL.includes("upstash.io");
+      const isTLS = process.env.REDIS_URL.startsWith("rediss://") || (process.env.REDIS_URL.includes("upstash.io") && !process.env.REDIS_URL.startsWith("redis://"));
       
-      const clientOptions = {
+      const clientOptions: any = {
         url: process.env.REDIS_URL,
-        socket: isTLS ? { 
+      };
+
+      if (isTLS) {
+        clientOptions.socket = {
           tls: true,
-          rejectUnauthorized: false 
-        } : undefined
-      } as any;
+          rejectUnauthorized: false
+        };
+      }
 
       const pubClient = createClient(clientOptions);
       const subClient = pubClient.duplicate();
 
-      // IMPORTANT: Always add error listeners to prevent unhandled 'error' event crashes
-      pubClient.on("error", (err) => console.error("Real-time: Redis Pub Client Error:", err.message));
-      subClient.on("error", (err) => console.error("Real-time: Redis Sub Client Error:", err.message));
+      // Track if we have already failed to prevent double fallback
+      let hasFailed = false;
+      const handleConnectionError = (err: Error) => {
+        if (!hasFailed) {
+          hasFailed = true;
+          console.error(`Real-time: Redis error, falling back to in-memory: ${err.message}`);
+          // Attempt to close clients to stop reconnection attempts
+          pubClient.disconnect().catch(() => {});
+          subClient.disconnect().catch(() => {});
+        }
+      };
 
-      await Promise.all([pubClient.connect(), subClient.connect()]);
+      pubClient.on("error", handleConnectionError);
+      subClient.on("error", handleConnectionError);
+
+      // Connect with a 5-second timeout
+      const connectPromise = Promise.all([pubClient.connect(), subClient.connect()]);
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Connection timeout")), 5000)
+      );
+
+      await Promise.race([connectPromise, timeoutPromise]);
       
-      io.adapter(createAdapter(pubClient, subClient));
-      console.log("Real-time: Redis adapter connected successfully.");
-    } catch (err) {
-      console.error("Real-time: Failed to connect Redis adapter, falling back to in-memory.", err);
+      if (!hasFailed) {
+        io.adapter(createAdapter(pubClient, subClient));
+        console.log("Real-time: Redis adapter connected successfully.");
+      }
+    } catch (err: any) {
+      console.error("Real-time: Redis initialization failed, using in-memory adapter.");
+      // The error listeners will handle cleanup if they haven't already
     }
   } else {
     console.log("Real-time: REDIS_URL not found, using in-memory adapter.");
@@ -58,6 +81,12 @@ export async function initSocket(httpServer: HttpServer) {
     socket.on("join-user", (userId: string | number) => {
       console.log(`Real-time: User ${userId} joining specific room`);
       socket.join(`user:${userId}`);
+    });
+
+    // Join staff room
+    socket.on("join-staff", () => {
+      console.log("Real-time: User joining staff room");
+      socket.join("staff");
     });
 
     // Join course-specific room (e.g. course_BSIT)
@@ -106,4 +135,12 @@ export function broadcastToCourse(courseCode: string, data: any) {
   if (!io) return;
   const room = `course_${courseCode}`;
   io.to(room).emit("announcement", data);
+}
+
+/**
+ * Broadcasts a message to all connected staff/admins.
+ */
+export function broadcastToStaff(data: any) {
+  if (!io) return;
+  io.to("staff").emit("announcement", data);
 }

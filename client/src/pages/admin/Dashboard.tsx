@@ -5,17 +5,46 @@ import { Users, FileCheck, BookOpen, AlertCircle, RefreshCw, Loader2, Download }
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { socket } from "@/lib/socket";
 
 // Recharts
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from "recharts";
 
 export default function AdminDashboard() {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { data: stats, isLoading: statsLoading, refetch: refetchStats } = useQuery<any>({
     queryKey: ["/api/admin/stats"],
     staleTime: 0,
     refetchOnMount: true,
     refetchOnWindowFocus: true,
   });
+
+  // Real-time alerts for staff
+  useEffect(() => {
+    if (user?.role === "officer" || user?.role === "admin") {
+      // Join staff room
+      socket.emit("join-staff");
+
+      const handleAnnouncement = (data: any) => {
+        if (data.type === "new-enrollment") {
+          toast({
+            title: "New Application",
+            description: data.message,
+          });
+          refetchStats();
+        }
+      };
+
+      socket.on("announcement", handleAnnouncement);
+      return () => {
+        socket.off("announcement", handleAnnouncement);
+      };
+    }
+  }, [user, toast, refetchStats]);
 
   const { data: pendingApplications } = useQuery<any[]>({
     queryKey: ["/api/admin/enrollments/pending"],
@@ -59,8 +88,14 @@ export default function AdminDashboard() {
     <AdminLayout>
       <div className="space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900 font-serif">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Overview of enrollment statistics and pending tasks.</p>
+          <h1 className="text-3xl font-bold text-slate-900 font-serif">
+            {user?.role === "admin" ? "Admin Dashboard" : "Staff Dashboard"}
+          </h1>
+          <p className="text-muted-foreground">
+            {user?.role === "admin" 
+              ? "Overview of enrollment statistics and pending tasks." 
+              : "Review student applications and manage academic records."}
+          </p>
         </div>
 
         {/* Stats Grid */}
@@ -77,12 +112,16 @@ export default function AdminDashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Enrollments</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                {user?.role === "admin" ? "Pending Enrollments" : "Applications to Review"}
+              </CardTitle>
               <FileCheck className="h-4 w-4 text-yellow-500" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-yellow-600">{stats?.pendingEnrollments || 0}</div>
-              <p className="text-xs text-muted-foreground">Requires immediate action</p>
+              <p className="text-xs text-muted-foreground">
+                {user?.role === "admin" ? "Requires immediate action" : "Awaiting your review"}
+              </p>
             </CardContent>
           </Card>
           <Card>

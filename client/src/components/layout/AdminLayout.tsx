@@ -34,7 +34,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <aside className="w-64 bg-slate-900 text-slate-300 hidden md:flex flex-col fixed inset-y-0 z-50">
         <div className="h-16 flex items-center gap-3 px-6 border-b border-slate-800 bg-slate-950">
           <img src="/assets/images/school-logo.jpg" alt="Logo" className="h-8 w-8" />
-          <span className="font-serif font-bold text-white">Admin Portal</span>
+          <span className="font-serif font-bold text-white">
+            {user?.role === "admin" ? "Admin Portal" : "Staff Portal"}
+          </span>
         </div>
 
         <div className="p-4 flex flex-col gap-1 flex-1">
@@ -103,9 +105,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
       <main className="flex-1 md:ml-64 flex flex-col min-h-screen">
         <header className="h-16 bg-white border-b flex items-center justify-between px-6 sticky top-0 z-40">
           <h1 className="text-lg font-semibold text-slate-800">
-            {location === '/admin/dashboard' ? 'Overview' :
+            {location === '/admin/dashboard' ? (user?.role === 'admin' ? 'Admin Overview' : 'Staff Overview') :
               location === '/admin/students' ? 'Student Records' :
-                'Admin Console'}
+                user?.role === 'admin' ? 'Admin Console' : 'Staff Console'}
           </h1>
           <div className="flex items-center gap-4">
             <DropdownMenu>
@@ -115,7 +117,9 @@ export function AdminLayout({ children }: AdminLayoutProps) {
                     <p className="text-sm font-bold text-slate-700 leading-none">
                       {(user as any)?.firstName ? `${(user as any).firstName} ${(user as any).lastName}` : (user?.username || 'Administrator')}
                     </p>
-                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mt-1">Admin</p>
+                    <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold mt-1">
+                      {user?.role === "admin" ? "Admin" : "Staff"}
+                    </p>
                   </div>
                   <Avatar className="h-9 w-9 ring-2 ring-primary/20 ring-offset-2 transition-all hover:ring-primary/50">
                     <AvatarFallback className="bg-primary text-white font-bold uppercase shadow-sm">
